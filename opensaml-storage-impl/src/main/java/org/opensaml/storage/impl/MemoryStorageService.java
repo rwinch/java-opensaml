@@ -71,15 +71,6 @@ public class MemoryStorageService extends AbstractMapBackedStorageService implem
 
     /** {@inheritDoc} */
     @Override
-    protected void doDestroy() {
-        contextMap = null;
-        lock = null;
-        super.doDestroy();
-    }
-
-
-    /** {@inheritDoc} */
-    @Override
     @Nonnull @Live protected Map<String, Map<String, MutableStorageRecord<?>>> getContextMap() {
         checkComponentActive();
         assert contextMap != null;

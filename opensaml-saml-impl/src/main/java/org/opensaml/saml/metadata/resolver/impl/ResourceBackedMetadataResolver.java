@@ -24,7 +24,6 @@ import javax.annotation.Nullable;
 import org.slf4j.Logger;
 
 import net.shibboleth.shared.annotation.ParameterName;
-import net.shibboleth.shared.annotation.constraint.NonnullAfterInit;
 import net.shibboleth.shared.primitive.LoggerFactory;
 import net.shibboleth.shared.resolver.ResolverException;
 import net.shibboleth.shared.resource.Resource;
@@ -40,7 +39,7 @@ public class ResourceBackedMetadataResolver extends AbstractReloadingMetadataRes
     @Nonnull private final Logger log = LoggerFactory.getLogger(ResourceBackedMetadataResolver.class);
 
     /** Resource from which metadata is read. */
-    @NonnullAfterInit private Resource metadataResource;
+    @Nonnull private final Resource metadataResource;
 
     /**
      * Constructor.
@@ -76,15 +75,6 @@ public class ResourceBackedMetadataResolver extends AbstractReloadingMetadataRes
         metadataResource = resource;
     }
 
-    /** {@inheritDoc} */
-    @Override
-    protected void doDestroy() {
-        // If we pull this, becomes Nonnull.
-        metadataResource = null;
-        
-        super.doDestroy();
-    }
-    
     /** {@inheritDoc} */
     @Override
     @Nonnull protected String getMetadataIdentifier() {

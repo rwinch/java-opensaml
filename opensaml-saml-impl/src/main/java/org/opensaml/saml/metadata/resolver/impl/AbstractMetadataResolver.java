@@ -81,7 +81,7 @@ public abstract class AbstractMetadataResolver extends AbstractIdentifiableIniti
     @NonnullAfterInit private String metricsBaseName;
     
     /** Unmarshaller factory used to get an unmarshaller for the metadata DOM. */
-    @NonnullAfterInit private UnmarshallerFactory unmarshallerFactory;
+    @Nonnull private final UnmarshallerFactory unmarshallerFactory;
 
     /** Whether metadata is required to be valid. */
     private boolean requireValidMetadata;
@@ -380,19 +380,6 @@ public abstract class AbstractMetadataResolver extends AbstractIdentifiableIniti
             log.error("{} Metadata resolver failed to properly initialize, fail-fast=false, "
                     + "continuing on in a degraded state", getLogPrefix(), e);
         }
-    }
-
-    /** {@inheritDoc} */
-    @Override protected void doDestroy() {
-        // TODO: if we pull this, unmarshallerFactory should be Nonnull.
-        unmarshallerFactory = null;
-        mdFilter = null;
-        entityBackingStore = null;
-        parser = null;
-        criterionPredicateRegistry = null;
-        activationCondition = null;
-
-        super.doDestroy();
     }
 
     /**

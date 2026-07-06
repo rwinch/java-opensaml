@@ -30,13 +30,11 @@ import org.apache.hc.core5.http.ClassicHttpResponse;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpEntity;
 import org.apache.hc.core5.http.HttpStatus;
-import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.opensaml.saml.metadata.resolver.RemoteMetadataResolver;
 import org.opensaml.security.httpclient.HttpClientSecurityParameters;
 import org.opensaml.security.httpclient.HttpClientSecuritySupport;
 import org.slf4j.Logger;
 
-import net.shibboleth.shared.annotation.constraint.NonnullAfterInit;
 import net.shibboleth.shared.logic.Constraint;
 import net.shibboleth.shared.primitive.LoggerFactory;
 import net.shibboleth.shared.resolver.ResolverException;
@@ -61,10 +59,10 @@ public class HTTPMetadataResolver extends AbstractReloadingMetadataResolver impl
     @Nonnull private final Logger log = LoggerFactory.getLogger(HTTPMetadataResolver.class);
 
     /** HTTP Client used to pull the metadata. */
-    @NonnullAfterInit private HttpClient httpClient;
+    @Nonnull private final HttpClient httpClient;
 
     /** URL to the Metadata. */
-    @NonnullAfterInit private URI metadataURI;
+    @Nonnull private final URI metadataURI;
 
     /** The ETag provided when the currently cached metadata was fetched. */
     @Nullable private String cachedMetadataETag;
@@ -163,19 +161,6 @@ public class HTTPMetadataResolver extends AbstractReloadingMetadataResolver impl
         checkSetterPreconditions();
 
         httpClientSecurityParameters = params;
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    protected void doDestroy() {
-        // TODO: if we pull this, httpClient and metadataURI become Nonnull.
-        httpClient = null;
-        httpClientSecurityParameters = null;
-        metadataURI = null;
-        cachedMetadataETag = null;
-        cachedMetadataLastModified = null;
-
-        super.doDestroy();
     }
 
     /** {@inheritDoc} */

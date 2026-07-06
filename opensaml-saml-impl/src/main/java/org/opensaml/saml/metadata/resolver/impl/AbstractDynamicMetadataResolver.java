@@ -1512,11 +1512,6 @@ public abstract class AbstractDynamicMetadataResolver extends AbstractMetadataRe
             MetricsSupport.remove(MetricRegistry.name(getMetricsBaseName(), METRIC_GAUGE_PERSISTENT_CACHE_INIT), 
                     gaugePersistentCacheInit);
         }
-        ratioGaugeFetchToResolve = null;
-        gaugeNumLiveEntityIDs = null;
-        gaugePersistentCacheInit = null;
-        timerFetchFromOriginSource = null;
-        timerResolve = null;
         
         super.doDestroy();
     }

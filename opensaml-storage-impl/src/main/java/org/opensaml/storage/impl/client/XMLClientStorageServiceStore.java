@@ -218,12 +218,6 @@ public class XMLClientStorageServiceStore extends AbstractClientStorageServiceSt
         }
         
         /** {@inheritDoc} */
-        @Override
-        protected void doDestroy() {
-            ((BasicParserPool) parserPool).destroy();
-        }
-
-        /** {@inheritDoc} */
         @Nonnull public ClientStorageServiceStore load(@Nullable @NotEmpty final String raw,
                 @Nonnull final ClientStorageSource src) {
             final ClientStorageServiceStore store = new XMLClientStorageServiceStore(parserPool);

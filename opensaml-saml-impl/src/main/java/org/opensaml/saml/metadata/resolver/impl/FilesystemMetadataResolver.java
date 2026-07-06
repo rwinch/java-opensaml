@@ -25,7 +25,6 @@ import javax.annotation.Nullable;
 
 import org.slf4j.Logger;
 
-import net.shibboleth.shared.annotation.constraint.NonnullAfterInit;
 import net.shibboleth.shared.logic.Constraint;
 import net.shibboleth.shared.primitive.LoggerFactory;
 import net.shibboleth.shared.resolver.ResolverException;
@@ -51,7 +50,7 @@ public class FilesystemMetadataResolver extends AbstractReloadingMetadataResolve
     @Nonnull private final Logger log = LoggerFactory.getLogger(FilesystemMetadataResolver.class);
 
     /** The metadata file. */
-    @NonnullAfterInit private File metadataFile;
+    @Nonnull private File metadataFile;
 
     /**
      * Constructor.
@@ -91,15 +90,6 @@ public class FilesystemMetadataResolver extends AbstractReloadingMetadataResolve
         metadataFile = Constraint.isNotNull(file, "Metadata file cannot be null");
     }
 
-    /** {@inheritDoc} */
-    @Override
-    protected void doDestroy() {
-        // TODO: if we pull this, becomes Nonnull.
-        metadataFile = null;
-          
-        super.doDestroy();
-    }
-    
     /** {@inheritDoc} */
     @Override
     @Nonnull protected String getMetadataIdentifier() {

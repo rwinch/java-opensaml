@@ -78,7 +78,7 @@ public abstract class AbstractDynamicHTTPMetadataResolver extends AbstractDynami
     @Nonnull private final Logger log = LoggerFactory.getLogger(AbstractDynamicHTTPMetadataResolver.class);
     
     /** HTTP Client used to pull the metadata. */
-    @NonnullAfterInit private HttpClient httpClient;
+    @Nonnull private final HttpClient httpClient;
     
     /** List of supported MIME types for use in Accept request header and validation of 
      * response Content-Type header.*/
@@ -91,7 +91,7 @@ public abstract class AbstractDynamicHTTPMetadataResolver extends AbstractDynami
     @NonnullAfterInit private Set<MediaType> supportedMediaTypes;
     
     /** HttpClient ResponseHandler instance to use. */
-    @Nonnull private HttpClientResponseHandler<XMLObject> responseHandler;
+    @Nonnull private final HttpClientResponseHandler<XMLObject> responseHandler;
         
     /** Optional HttpClient security parameters.*/
     @Nullable private HttpClientSecurityParameters httpClientSecurityParameters;
@@ -236,21 +236,7 @@ public abstract class AbstractDynamicHTTPMetadataResolver extends AbstractDynami
         
         log.debug("{} Supported content types are: {}", getLogPrefix(), getSupportedContentTypes());
     }
-    
-   /** {@inheritDoc} */
-    @Override
-    protected void doDestroy() {
-        // TODO: if we pull this, httpClient should be Nonnull.
-        httpClient = null;
-        httpClientSecurityParameters = null;
-        
-        supportedContentTypes = null;
-        supportedContentTypesValue = null;
-        supportedMediaTypes = null;
-        
-        super.doDestroy();
-    }
-    
+
     /** {@inheritDoc} */
     @Override
     @Nullable protected XMLObject fetchFromOriginSource(@Nullable final CriteriaSet criteria) 
