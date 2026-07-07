@@ -30,8 +30,9 @@ import org.opensaml.profile.context.navigate.ParentProfileRequestContextLookup;
 
 import com.google.common.base.Predicates;
 
-import net.shibboleth.shared.component.DestructableComponent;
+import net.shibboleth.shared.annotation.OnTeardown;
 import net.shibboleth.shared.logic.Constraint;
+import net.shibboleth.shared.primitive.AnnotationsSupport;
 import net.shibboleth.shared.primitive.StringSupport;
 
 /**
@@ -99,12 +100,12 @@ public abstract class AbstractHandlerDelegatingProfileAction<DelegateType extend
         errorEvent = StringSupport.trimOrNull(event);
     }
     
-    /** {@inheritDoc} */
-    protected void doDestroy() {
-        super.doDestroy();
-        if (delegate != null && delegate instanceof DestructableComponent) {
-            ((DestructableComponent) delegate).destroy();
-        }
+    /**
+     * Tear down the bean when the ServiceableComponent it is part of is unloaded.
+     */
+    @OnTeardown
+    public final void teardownAbstractHandlerDelegatingProfileAction() {
+        AnnotationsSupport.callOnTeardownAnnotations(delegate);
     }
     
     /**

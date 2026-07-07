@@ -31,6 +31,7 @@ import org.opensaml.saml.common.binding.artifact.ExpiringSAMLArtifactMapEntry;
 import org.opensaml.saml.common.binding.artifact.SAMLArtifactMap;
 import org.slf4j.Logger;
 
+import net.shibboleth.shared.annotation.OnTeardown;
 import net.shibboleth.shared.annotation.constraint.NonnullAfterInit;
 import net.shibboleth.shared.annotation.constraint.NotEmpty;
 import net.shibboleth.shared.component.AbstractInitializableComponent;
@@ -83,16 +84,17 @@ public class BasicSAMLArtifactMap extends AbstractInitializableComponent impleme
         }
     }
 
-    /** {@inheritDoc} */
-    @Override protected void doDestroy() {
+    /**
+     * Tear down worker tasks when the containing service reloads.
+     */
+    @OnTeardown
+    public final synchronized void teardownBasicSAMLArtifactMap() {
         if (cleanupTask != null) {
             cleanupTask.cancel();
             cleanupTask = null;
             cleanupTaskTimer = null;
         }
         artifactStore = null;
-        
-        super.doDestroy();
     }
 
     /**

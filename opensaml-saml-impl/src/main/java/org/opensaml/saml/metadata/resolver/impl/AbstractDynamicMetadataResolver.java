@@ -62,6 +62,7 @@ import com.codahale.metrics.RatioGauge;
 import com.codahale.metrics.Timer.Context;
 import com.google.common.base.MoreObjects;
 
+import net.shibboleth.shared.annotation.OnTeardown;
 import net.shibboleth.shared.annotation.constraint.NonnullAfterInit;
 import net.shibboleth.shared.annotation.constraint.NotEmpty;
 import net.shibboleth.shared.annotation.constraint.NotLive;
@@ -631,6 +632,9 @@ public abstract class AbstractDynamicMetadataResolver extends AbstractMetadataRe
     @Nonnull protected Iterable<EntityDescriptor> doResolve(@Nullable final CriteriaSet criteria)
             throws ResolverException {
         checkComponentActive();
+        if (cleanupTask == null) {
+            log.warn("{} Called doResolve in a torn down resolver", getId());
+        }
         
         final Context contextResolve = MetricsSupport.startTimer(timerResolve);
         try {
@@ -1488,9 +1492,9 @@ public abstract class AbstractDynamicMetadataResolver extends AbstractMetadataRe
         super.removeByEntityID(entityID, backingStore);
     }
 
-    /** {@inheritDoc} */
-    @Override
-    protected void doDestroy() {
+    /** Tear down when an embedding service refreshes. */
+    @OnTeardown
+    public void tearDownAbstractDynamicMetadataResolver() {
         if (cleanupTask != null) {
             cleanupTask.cancel();
         }
@@ -1499,6 +1503,14 @@ public abstract class AbstractDynamicMetadataResolver extends AbstractMetadataRe
         }
         cleanupTask = null;
         taskTimer = null;
+    }
+
+    /** {@inheritDoc}
+     * 
+     *  This just tears down metrics and will be removed in V6.
+     */
+    @Override
+    protected void doDestroy() {
         
         if (ratioGaugeFetchToResolve != null) {
             MetricsSupport.remove(MetricRegistry.name(getMetricsBaseName(), METRIC_RATIOGAUGE_FETCH_TO_RESOLVE), 
