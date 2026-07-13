@@ -17,8 +17,6 @@ package org.opensaml.saml.metadata.resolver.impl;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.net.SocketException;
-import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -64,6 +62,7 @@ public class FileBackedHTTPMetadataResolverTest extends XMLObjectBaseTestCase {
     
     private EmbeddedJetty jetty;
     private int jettyStatus;
+    private String keystorePath;
     
     private HttpClientBuilder httpClientBuilder;
 
@@ -80,13 +79,19 @@ public class FileBackedHTTPMetadataResolverTest extends XMLObjectBaseTestCase {
     private CriteriaSet criteriaSet;
 
     @BeforeClass
-    public void startJetty() throws UnknownHostException, SocketException {
+    public void startJetty() throws IOException {
         relativeMDResource = ResourceHelper.of(new ClassPathResource("org/opensaml/saml/metadata/resolver/impl/08ced64cddc9f1578598b2cf71ae747b11d11472.xml"));
         relativeMDResourceExpired = ResourceHelper.of(new ClassPathResource("org/opensaml/saml/metadata/resolver/impl/08ced64cddc9f1578598b2cf71ae747b11d11473-expired.xml"));
         relativeMDResourceBad = ResourceHelper.of(new ClassPathResource("org/opensaml/saml/metadata/resolver/impl/08ced64cddc9f1578598b2cf71ae747b11d11473-bad.xml"));
         metadataURLHttps = "https://localhost:8443/metadata.xml";
         metadataURLHttp = "http://localhost:8080/metadata.xml";
 
+        // Copy Jetty keystore from jar classpath to file system for Java system property testing.
+        keystorePath = System.getProperty("java.io.tmpdir") + System.getProperty("file.separator") + "localhost-keystore.p12";
+        try (final FileOutputStream keystoreStream = new FileOutputStream(keystorePath)) {
+            Resources.copy(EmbeddedJetty.getServerKeystoreResource().getURL(), keystoreStream);
+        }
+        
         jetty = new EmbeddedJetty();
         jetty.startServer(new EmbeddedJetty.ResourceHandler(
                 new NonnullSupplier<Integer>() {
@@ -99,11 +104,13 @@ public class FileBackedHTTPMetadataResolverTest extends XMLObjectBaseTestCase {
     }
     
     @AfterClass
-    public void stopJetty() {
+    public void stopJetty() throws IOException {
         if (jetty != null) {
             jetty.stopServer();
             jetty = null;
         }
+        
+        Files.delete(Path.of(keystorePath));
     }
     
     @BeforeMethod
@@ -551,7 +558,7 @@ public class FileBackedHTTPMetadataResolverTest extends XMLObjectBaseTestCase {
     @Test
     public void testHTTPSNoTrustEngine() throws Exception  {
         try {
-            System.setProperty("javax.net.ssl.trustStore", EmbeddedJetty.getServerKeystoreResource().getFile().getPath());
+            System.setProperty("javax.net.ssl.trustStore", keystorePath);
             System.setProperty("javax.net.ssl.trustStorePassword", EmbeddedJetty.getServerKeystorePassword());
             
             httpClientBuilder.setTLSSocketFactory(HTTPMetadataResolverTest.buildSocketFactory(false));

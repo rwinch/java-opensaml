@@ -14,11 +14,13 @@
 
 package org.opensaml.saml.metadata.resolver.impl;
 
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.SocketException;
 import java.net.URISyntaxException;
-import java.net.UnknownHostException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Set;
@@ -52,6 +54,7 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import com.google.common.io.ByteStreams;
+import com.google.common.io.Resources;
 
 import net.shibboleth.shared.collection.CollectionSupport;
 import net.shibboleth.shared.component.ComponentInitializationException;
@@ -70,6 +73,7 @@ import net.shibboleth.shared.testing.EmbeddedJetty;
 public class HTTPMetadataResolverTest extends XMLObjectBaseTestCase {
 
     private EmbeddedJetty jetty;
+    private String keystorePath;
     
     private HttpClientBuilder httpClientBuilder;
 
@@ -83,20 +87,28 @@ public class HTTPMetadataResolverTest extends XMLObjectBaseTestCase {
     static final String DATA_PATH = "/org/opensaml/saml/metadata/resolver/impl/";
     
     @BeforeClass
-    protected void setUpClass() throws UnknownHostException, SocketException {
+    protected void setUpClass() throws FileNotFoundException, IOException {
+        metadataURLHttps = "https://localhost:8443/08ced64cddc9f1578598b2cf71ae747b11d11472.xml";
+        metadataURLHttp = "http://localhost:8080/08ced64cddc9f1578598b2cf71ae747b11d11472.xml";
+
+        // Copy Jetty keystore from jar classpath to file system for Java system property testing.
+        keystorePath = System.getProperty("java.io.tmpdir") + System.getProperty("file.separator") + "localhost-keystore.p12";
+        try (final FileOutputStream keystoreStream = new FileOutputStream(keystorePath)) {
+            Resources.copy(EmbeddedJetty.getServerKeystoreResource().getURL(), keystoreStream);
+        }
+
         jetty = new EmbeddedJetty();
         jetty.startServer(new EmbeddedJetty.ResourceHandler(200,
                 ResourceHelper.of(new ClassPathResource("org/opensaml/saml/metadata/resolver/impl/08ced64cddc9f1578598b2cf71ae747b11d11472.xml"))));
-        metadataURLHttps = "https://localhost:8443/08ced64cddc9f1578598b2cf71ae747b11d11472.xml";
-        metadataURLHttp = "http://localhost:8080/08ced64cddc9f1578598b2cf71ae747b11d11472.xml";
     }
 
     @AfterClass
-    public void stopJetty() {
+    public void stopJetty() throws IOException {
         if (jetty != null) {
             jetty.stopServer();
             jetty = null;
         }
+        Files.delete(Path.of(keystorePath));
     }
     
     @BeforeMethod
@@ -255,7 +267,7 @@ public class HTTPMetadataResolverTest extends XMLObjectBaseTestCase {
     @Test
     public void testHTTPSNoTrustEngine() throws Exception  {
         try {
-            System.setProperty("javax.net.ssl.trustStore", EmbeddedJetty.getServerKeystoreResource().getFile().getPath());
+            System.setProperty("javax.net.ssl.trustStore", keystorePath);
             System.setProperty("javax.net.ssl.trustStorePassword", EmbeddedJetty.getServerKeystorePassword());
 
             httpClientBuilder.setTLSSocketFactory(buildSocketFactory(false));

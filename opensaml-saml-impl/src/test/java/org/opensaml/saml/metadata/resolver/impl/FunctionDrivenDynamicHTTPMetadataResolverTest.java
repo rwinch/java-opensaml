@@ -14,8 +14,11 @@
 
 package org.opensaml.saml.metadata.resolver.impl;
 
-import java.net.SocketException;
-import java.net.UnknownHostException;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.util.Arrays;
@@ -41,6 +44,7 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import com.google.common.base.Predicates;
+import com.google.common.io.Resources;
 
 import net.shibboleth.shared.codec.StringDigester;
 import net.shibboleth.shared.codec.StringDigester.OutputFormat;
@@ -58,6 +62,7 @@ public class FunctionDrivenDynamicHTTPMetadataResolverTest extends XMLObjectBase
     
     private EmbeddedJetty jetty;
     private int jettyStatus;
+    private String keystorePath;
 
     private Resource relativeMDResource;
     
@@ -66,8 +71,15 @@ public class FunctionDrivenDynamicHTTPMetadataResolverTest extends XMLObjectBase
     private HttpClientBuilder httpClientBuilder;
     
     @BeforeClass
-    public void startJetty() throws UnknownHostException, SocketException {
+    public void startJetty() throws FileNotFoundException, IOException {
+        
         relativeMDResource = ResourceHelper.of(new ClassPathResource("org/opensaml/saml/metadata/resolver/impl/localhost-sp.xml"));
+
+        // Copy Jetty keystore from jar classpath to file system for Java system property testing.
+        keystorePath = System.getProperty("java.io.tmpdir") + System.getProperty("file.separator") + "localhost-keystore.p12";
+        try (final FileOutputStream keystoreStream = new FileOutputStream(keystorePath)) {
+            Resources.copy(EmbeddedJetty.getServerKeystoreResource().getURL(), keystoreStream);
+        }
 
         jetty = new EmbeddedJetty();
         final var handler = new EmbeddedJetty.ResourceHandler(
@@ -83,11 +95,13 @@ public class FunctionDrivenDynamicHTTPMetadataResolverTest extends XMLObjectBase
     }
     
     @AfterClass
-    public void stopJetty() {
+    public void stopJetty() throws IOException {
         if (jetty != null) {
             jetty.stopServer();
             jetty = null;
         }
+        
+        Files.delete(Path.of(keystorePath));
     }
     
     @BeforeMethod
@@ -373,7 +387,7 @@ public class FunctionDrivenDynamicHTTPMetadataResolverTest extends XMLObjectBase
     @Test
     public void testHTTPSNoTrustEngine() throws Exception  {
         try {
-            System.setProperty("javax.net.ssl.trustStore", EmbeddedJetty.getServerKeystoreResource().getFile().getPath());
+            System.setProperty("javax.net.ssl.trustStore", keystorePath);
             System.setProperty("javax.net.ssl.trustStorePassword", EmbeddedJetty.getServerKeystorePassword());
             
             final String template = "https://localhost:8443/entities/${entityID}.xml";
