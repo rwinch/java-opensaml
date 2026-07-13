@@ -17,6 +17,8 @@ package org.opensaml.saml.metadata.resolver.impl;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.net.SocketException;
+import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -34,8 +36,11 @@ import org.opensaml.saml.metadata.resolver.filter.MetadataFilterContext;
 import org.opensaml.saml.metadata.resolver.filter.data.impl.MetadataSource;
 import org.opensaml.saml.saml2.metadata.EntityDescriptor;
 import org.opensaml.security.httpclient.HttpClientSecurityParameters;
+import org.springframework.core.io.ClassPathResource;
 import org.testng.Assert;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.AfterMethod;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -43,9 +48,12 @@ import com.google.common.io.Resources;
 
 import net.shibboleth.shared.component.ComponentInitializationException;
 import net.shibboleth.shared.httpclient.HttpClientBuilder;
+import net.shibboleth.shared.primitive.NonnullSupplier;
 import net.shibboleth.shared.resolver.CriteriaSet;
 import net.shibboleth.shared.resolver.ResolverException;
-import net.shibboleth.shared.testing.RepositorySupport;
+import net.shibboleth.shared.resource.Resource;
+import net.shibboleth.shared.spring.resource.ResourceHelper;
+import net.shibboleth.shared.testing.EmbeddedJetty;
 
 
 /**
@@ -54,13 +62,16 @@ import net.shibboleth.shared.testing.RepositorySupport;
 @SuppressWarnings("javadoc")
 public class FileBackedHTTPMetadataResolverTest extends XMLObjectBaseTestCase {
     
+    private EmbeddedJetty jetty;
+    private int jettyStatus;
+    
     private HttpClientBuilder httpClientBuilder;
 
     private String metadataURLHttps;
     private String metadataURLHttp;
-    private String relativeMDResource;
-    private String relativeMDResourceExpired;
-    private String relativeMDResourceBad;
+    private Resource relativeMDResource;
+    private Resource relativeMDResourceExpired;
+    private Resource relativeMDResourceBad;
     private String badMDURL;
     private String backupFilePath;
     private File backupFile;
@@ -68,18 +79,41 @@ public class FileBackedHTTPMetadataResolverTest extends XMLObjectBaseTestCase {
     private String entityID;
     private CriteriaSet criteriaSet;
 
+    @BeforeClass
+    public void startJetty() throws UnknownHostException, SocketException {
+        relativeMDResource = ResourceHelper.of(new ClassPathResource("org/opensaml/saml/metadata/resolver/impl/08ced64cddc9f1578598b2cf71ae747b11d11472.xml"));
+        relativeMDResourceExpired = ResourceHelper.of(new ClassPathResource("org/opensaml/saml/metadata/resolver/impl/08ced64cddc9f1578598b2cf71ae747b11d11473-expired.xml"));
+        relativeMDResourceBad = ResourceHelper.of(new ClassPathResource("org/opensaml/saml/metadata/resolver/impl/08ced64cddc9f1578598b2cf71ae747b11d11473-bad.xml"));
+        metadataURLHttps = "https://localhost:8443/metadata.xml";
+        metadataURLHttp = "http://localhost:8080/metadata.xml";
+
+        jetty = new EmbeddedJetty();
+        jetty.startServer(new EmbeddedJetty.ResourceHandler(
+                new NonnullSupplier<Integer>() {
+                    @Nonnull public Integer get() {
+                        return jettyStatus;
+                    }
+                },
+                NonnullSupplier.of(relativeMDResource)
+                ));
+    }
+    
+    @AfterClass
+    public void stopJetty() {
+        if (jetty != null) {
+            jetty.stopServer();
+            jetty = null;
+        }
+    }
+    
     @BeforeMethod
     protected void setUp() throws Exception {
+        jettyStatus = 200;
+        
         httpClientBuilder = new HttpClientBuilder();
         
-        relativeMDResource = "org/opensaml/saml/metadata/resolver/impl/08ced64cddc9f1578598b2cf71ae747b11d11472.xml";
-        relativeMDResourceExpired = "org/opensaml/saml/metadata/resolver/impl/08ced64cddc9f1578598b2cf71ae747b11d11473-expired.xml";
-        relativeMDResourceBad = "org/opensaml/saml/metadata/resolver/impl/08ced64cddc9f1578598b2cf71ae747b11d11473-bad.xml";
-        metadataURLHttps = RepositorySupport.buildHTTPSResourceURL("java-opensaml", String.format("opensaml-saml-impl/src/test/resources/%s", relativeMDResource));
-        metadataURLHttp = RepositorySupport.buildHTTPResourceURL("java-opensaml", String.format("opensaml-saml-impl/src/test/resources/%s", relativeMDResource), false);
-        
         entityID = "https://www.example.org/sp";
-        badMDURL = "https://test.shibboleth.net/foo/bar/baz/samlmd";
+        badMDURL = "http://localhost:8080/foo/bar/baz/samlmd";
         backupFilePath = System.getProperty("java.io.tmpdir") + System.getProperty("file.separator") 
                 + "filebacked-http-metadata.xml";
         backupFile = new File(backupFilePath);
@@ -149,6 +183,10 @@ public class FileBackedHTTPMetadataResolverTest extends XMLObjectBaseTestCase {
      */
     @Test
     public void testFailFastBadURL() throws Exception {
+        
+        // Trigger failure.
+        jettyStatus = 404;
+        
         metadataProvider = new FileBackedHTTPMetadataResolver(httpClientBuilder.buildClient(), badMDURL, backupFilePath);
         
         metadataProvider.setFailFastInitialization(true);
@@ -173,8 +211,12 @@ public class FileBackedHTTPMetadataResolverTest extends XMLObjectBaseTestCase {
      */
     @Test
     public void testNoFailFastBadURL() throws Exception {
-        metadataProvider = new FileBackedHTTPMetadataResolver(httpClientBuilder.buildClient(), badMDURL, backupFilePath);
         
+        // Trigger failure.
+        jettyStatus = 404;
+
+        metadataProvider = new FileBackedHTTPMetadataResolver(httpClientBuilder.buildClient(), badMDURL, backupFilePath);
+
         metadataProvider.setFailFastInitialization(false);
         metadataProvider.setId("test");
         metadataProvider.setParserPool(parserPool);
@@ -190,7 +232,7 @@ public class FileBackedHTTPMetadataResolverTest extends XMLObjectBaseTestCase {
             Assert.fail("Provider failed init with fail-fast=false");
         }
         
-        EntityDescriptor descriptor = metadataProvider.resolveSingle(criteriaSet);
+        final EntityDescriptor descriptor = metadataProvider.resolveSingle(criteriaSet);
         Assert.assertNull(descriptor);
     }
     
@@ -201,11 +243,12 @@ public class FileBackedHTTPMetadataResolverTest extends XMLObjectBaseTestCase {
      */
     @Test
     public void testFailFastBadBackupFile() throws Exception {
+        
         try {
             // Use a known existing directory as backup file path, which is an invalid argument.
             metadataProvider = new FileBackedHTTPMetadataResolver(httpClientBuilder.buildClient(), metadataURLHttp, System.getProperty("java.io.tmpdir"));
         } catch (final ResolverException e) {
-            Assert.fail("Provider failed bad backup file in constructor");
+            Assert.fail("Provider failed due to bad backup file in constructor");
             
         }
         metadataProvider.setFailFastInitialization(true);
@@ -228,11 +271,12 @@ public class FileBackedHTTPMetadataResolverTest extends XMLObjectBaseTestCase {
      */
     @Test
     public void testNoFailFastBadBackupFile() throws Exception {
+        
         try {
             // Use a known existing directory as backup file path, which is an invalid argument.
             metadataProvider = new FileBackedHTTPMetadataResolver(httpClientBuilder.buildClient(), metadataURLHttp, System.getProperty("java.io.tmpdir"));
-        } catch (ResolverException e) {
-            Assert.fail("Provider failed bad backup file in constructor");
+        } catch (final ResolverException e) {
+            Assert.fail("Provider failed due to bad backup file in constructor");
             
         }
         metadataProvider.setFailFastInitialization(false);
@@ -262,12 +306,12 @@ public class FileBackedHTTPMetadataResolverTest extends XMLObjectBaseTestCase {
     @Test
     public void testInitFromBackupFile() throws Exception {
         try (FileOutputStream backupFileOutputStream = new FileOutputStream(backupFile)) {
-            Resources.copy(Resources.getResource(relativeMDResource), backupFileOutputStream);
+            Resources.copy(relativeMDResource.getURL(), backupFileOutputStream);
         }
         
         Assert.assertTrue(backupFile.exists(), "Backup file was not created");
         Assert.assertTrue(backupFile.length() > 0, "Backup file contains no data");
-        
+
         final MockContextTrackingFilter mockFilter = new MockContextTrackingFilter();
 
         metadataProvider = new FileBackedHTTPMetadataResolver(httpClientBuilder.buildClient(), metadataURLHttp, backupFilePath);
@@ -318,12 +362,12 @@ public class FileBackedHTTPMetadataResolverTest extends XMLObjectBaseTestCase {
     @Test
     public void testInitFromExpiredBackupFile() throws Exception {
         try (FileOutputStream backupFileOutputStream = new FileOutputStream(backupFile)) {
-            Resources.copy(Resources.getResource(relativeMDResourceExpired), backupFileOutputStream);
+            Resources.copy(relativeMDResourceExpired.getURL(), backupFileOutputStream);
         }
         
         Assert.assertTrue(backupFile.exists(), "Backup file was not created");
         Assert.assertTrue(backupFile.length() > 0, "Backup file contains no data");
-        
+
         metadataProvider = new FileBackedHTTPMetadataResolver(httpClientBuilder.buildClient(), metadataURLHttp, backupFilePath);
         metadataProvider.setParserPool(parserPool);
         metadataProvider.setFailFastInitialization(true);
@@ -371,12 +415,12 @@ public class FileBackedHTTPMetadataResolverTest extends XMLObjectBaseTestCase {
     @Test
     public void testInitFromBadBackupFileNonFailFast() throws Exception {
         try (FileOutputStream backupFileOutputStream = new FileOutputStream(backupFile)) {
-            Resources.copy(Resources.getResource(relativeMDResourceBad), backupFileOutputStream);
+            Resources.copy(relativeMDResourceBad.getURL(), backupFileOutputStream);
         }
         
         Assert.assertTrue(backupFile.exists(), "Backup file was not created");
         Assert.assertTrue(backupFile.length() > 0, "Backup file contains no data");
-        
+
         metadataProvider = new FileBackedHTTPMetadataResolver(httpClientBuilder.buildClient(), metadataURLHttp, backupFilePath);
         metadataProvider.setParserPool(parserPool);
         metadataProvider.setFailFastInitialization(false);
@@ -421,14 +465,15 @@ public class FileBackedHTTPMetadataResolverTest extends XMLObjectBaseTestCase {
     @Test
     public void testNoBackupFileLoadWhenMetadataCached() throws Exception {
         try (FileOutputStream backupFileOutputStream = new FileOutputStream(backupFile)) {
-            Resources.copy(Resources.getResource(relativeMDResource), backupFileOutputStream);
+            Resources.copy(relativeMDResource.getURL(), backupFileOutputStream);
         }
         
         Assert.assertTrue(backupFile.exists(), "Backup file was not created");
         Assert.assertTrue(backupFile.length() > 0, "Backup file contains no data");
-        
-        httpClientBuilder.setConnectionDisregardTLSCertificate(true);
-        
+
+        // Trigger error.
+        jettyStatus = 404;
+
         metadataProvider = new FileBackedHTTPMetadataResolver(httpClientBuilder.buildClient(), badMDURL, backupFilePath);
         metadataProvider.setParserPool(parserPool);
         metadataProvider.setFailFastInitialization(true);
@@ -482,15 +527,15 @@ public class FileBackedHTTPMetadataResolverTest extends XMLObjectBaseTestCase {
     }
     
     @Test
-    public void testTrustEngineSocketFactoryNoHTTPSWithTrustEngine() throws Exception  {
-        // Make sure resolver works when TrustEngine socket factory is configured but just using an HTTP URL.
+    public void testTrustEngineSocketFactoryHTTPSWithTrustEngine() throws Exception  {
+        // Make sure resolver works when TrustEngine socket factory is configured and using an HTTPS URL.
         httpClientBuilder.setTLSSocketFactory(HTTPMetadataResolverTest.buildSocketFactory());
-        
+
         metadataProvider = new FileBackedHTTPMetadataResolver(httpClientBuilder.buildClient(), metadataURLHttps, backupFilePath);
         metadataProvider.setParserPool(parserPool);
         metadataProvider.setId("test");
         final HttpClientSecurityParameters params = new HttpClientSecurityParameters();
-        params.setTLSTrustEngine(HTTPMetadataResolverTest.buildExplicitKeyTrustEngine("repo-entity.crt"));
+        params.setTLSTrustEngine(HTTPMetadataResolverTest.buildExplicitKeyTrustEngine(EmbeddedJetty.getServerCertficateResource()));
         metadataProvider.setHttpClientSecurityParameters(params);
         metadataProvider.initialize();
         
@@ -506,8 +551,8 @@ public class FileBackedHTTPMetadataResolverTest extends XMLObjectBaseTestCase {
     @Test
     public void testHTTPSNoTrustEngine() throws Exception  {
         try {
-            System.setProperty("javax.net.ssl.trustStore", getClass().getResource("repo.truststore.jks").getFile());
-            System.setProperty("javax.net.ssl.trustStorePassword", "shibboleth");
+            System.setProperty("javax.net.ssl.trustStore", EmbeddedJetty.getServerKeystoreResource().getFile().getPath());
+            System.setProperty("javax.net.ssl.trustStorePassword", EmbeddedJetty.getServerKeystorePassword());
             
             httpClientBuilder.setTLSSocketFactory(HTTPMetadataResolverTest.buildSocketFactory(false));
 
@@ -526,7 +571,6 @@ public class FileBackedHTTPMetadataResolverTest extends XMLObjectBaseTestCase {
         } finally {
             System.setProperty("javax.net.ssl.trustStore", "");
             System.setProperty("javax.net.ssl.trustStorePassword", "");
-
         }
     }
     
@@ -538,7 +582,7 @@ public class FileBackedHTTPMetadataResolverTest extends XMLObjectBaseTestCase {
         metadataProvider.setParserPool(parserPool);
         metadataProvider.setId("test");
         final HttpClientSecurityParameters params = new HttpClientSecurityParameters();
-        params.setTLSTrustEngine(HTTPMetadataResolverTest.buildExplicitKeyTrustEngine("repo-entity.crt"));
+        params.setTLSTrustEngine(HTTPMetadataResolverTest.buildExplicitKeyTrustEngine(EmbeddedJetty.getServerCertficateResource()));
         metadataProvider.setHttpClientSecurityParameters(params);
         metadataProvider.initialize();
         
@@ -560,7 +604,9 @@ public class FileBackedHTTPMetadataResolverTest extends XMLObjectBaseTestCase {
         metadataProvider.setParserPool(parserPool);
         metadataProvider.setId("test");
         final HttpClientSecurityParameters params = new HttpClientSecurityParameters();
-        params.setTLSTrustEngine(HTTPMetadataResolverTest.buildExplicitKeyTrustEngine("badKey.crt"));
+        params.setTLSTrustEngine(
+                HTTPMetadataResolverTest.buildExplicitKeyTrustEngine(
+                        ResourceHelper.of(new ClassPathResource(HTTPMetadataResolverTest.DATA_PATH + "badKey.crt"))));
         metadataProvider.setHttpClientSecurityParameters(params);
         
         try {
@@ -583,7 +629,7 @@ public class FileBackedHTTPMetadataResolverTest extends XMLObjectBaseTestCase {
         metadataProvider.setId("test");
         
         final HttpClientSecurityParameters params = new HttpClientSecurityParameters();
-        params.setTLSTrustEngine(HTTPMetadataResolverTest.buildPKIXTrustEngine("repo-rootCA.crt", null, false));
+        params.setTLSTrustEngine(HTTPMetadataResolverTest.buildPKIXTrustEngine(EmbeddedJetty.getServerCertficateResource(), null, false));
         metadataProvider.setHttpClientSecurityParameters(params);
 
         metadataProvider.initialize();
@@ -600,12 +646,12 @@ public class FileBackedHTTPMetadataResolverTest extends XMLObjectBaseTestCase {
     @Test
     public void testHTTPSTrustEngineValidPKIXExplicitName() throws Exception  {
         httpClientBuilder.setTLSSocketFactory(HTTPMetadataResolverTest.buildSocketFactory());
-        
+
         metadataProvider = new FileBackedHTTPMetadataResolver(httpClientBuilder.buildClient(), metadataURLHttps, backupFilePath);
         metadataProvider.setParserPool(parserPool);
         metadataProvider.setId("test");
         final HttpClientSecurityParameters params = new HttpClientSecurityParameters();
-        params.setTLSTrustEngine(HTTPMetadataResolverTest.buildPKIXTrustEngine("repo-rootCA.crt", "test.shibboleth.net", true));
+        params.setTLSTrustEngine(HTTPMetadataResolverTest.buildPKIXTrustEngine(EmbeddedJetty.getServerCertficateResource(), "localhost", true));
         metadataProvider.setHttpClientSecurityParameters(params);
 
         metadataProvider.initialize();
@@ -622,12 +668,13 @@ public class FileBackedHTTPMetadataResolverTest extends XMLObjectBaseTestCase {
     @Test
     public void testHTTPSTrustEngineInvalidPKIX() throws Exception  {
         httpClientBuilder.setTLSSocketFactory(HTTPMetadataResolverTest.buildSocketFactory());
-        
+
         metadataProvider = new FileBackedHTTPMetadataResolver(httpClientBuilder.buildClient(), metadataURLHttps, backupFilePath);
         metadataProvider.setParserPool(parserPool);
         metadataProvider.setId("test");
         final HttpClientSecurityParameters params = new HttpClientSecurityParameters();
-        params.setTLSTrustEngine(HTTPMetadataResolverTest.buildPKIXTrustEngine("badCA.crt", null, false));
+        params.setTLSTrustEngine(HTTPMetadataResolverTest.buildPKIXTrustEngine(
+                ResourceHelper.of(new ClassPathResource(HTTPMetadataResolverTest.DATA_PATH + "badKey.crt")) , null, false));
         metadataProvider.setHttpClientSecurityParameters(params);
 
         try {
@@ -650,7 +697,7 @@ public class FileBackedHTTPMetadataResolverTest extends XMLObjectBaseTestCase {
         metadataProvider.setId("test");
         
         final HttpClientSecurityParameters params = new HttpClientSecurityParameters();
-        params.setTLSTrustEngine(HTTPMetadataResolverTest.buildPKIXTrustEngine("repo-rootCA.crt", "foobar.shibboleth.net", true));
+        params.setTLSTrustEngine(HTTPMetadataResolverTest.buildPKIXTrustEngine(EmbeddedJetty.getServerCertficateResource(), "badlocalhost", true));
         metadataProvider.setHttpClientSecurityParameters(params);
         
         try {
@@ -666,12 +713,13 @@ public class FileBackedHTTPMetadataResolverTest extends XMLObjectBaseTestCase {
     
     @Test
     public void testHTTPSTrustEngineWrongSocketFactory() throws Exception  {
-        // Trust engine set, but appropriate socket factory not set
+        // Trust engine set, but appropriate socket factory not set        
+        
         metadataProvider = new FileBackedHTTPMetadataResolver(httpClientBuilder.buildClient(), metadataURLHttps, backupFilePath);
         metadataProvider.setParserPool(parserPool);
         metadataProvider.setId("test");
         final HttpClientSecurityParameters params = new HttpClientSecurityParameters();
-        params.setTLSTrustEngine(HTTPMetadataResolverTest.buildExplicitKeyTrustEngine("repo-entity.crt"));
+        params.setTLSTrustEngine(HTTPMetadataResolverTest.buildExplicitKeyTrustEngine(EmbeddedJetty.getServerCertficateResource()));
         metadataProvider.setHttpClientSecurityParameters(params);
 
         try {

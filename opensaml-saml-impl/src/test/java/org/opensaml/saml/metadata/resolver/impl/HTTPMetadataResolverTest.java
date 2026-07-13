@@ -16,10 +16,15 @@ package org.opensaml.saml.metadata.resolver.impl;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.SocketException;
 import java.net.URISyntaxException;
+import java.net.UnknownHostException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Set;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.apache.hc.client5.http.socket.LayeredConnectionSocketFactory;
 import org.opensaml.core.criterion.EntityIdCriterion;
@@ -39,7 +44,9 @@ import org.opensaml.security.x509.impl.BasicX509CredentialNameEvaluator;
 import org.opensaml.security.x509.impl.CertPathPKIXTrustEvaluator;
 import org.opensaml.security.x509.impl.PKIXX509CredentialTrustEngine;
 import org.opensaml.security.x509.impl.StaticPKIXValidationInformationResolver;
+import org.springframework.core.io.ClassPathResource;
 import org.testng.Assert;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -52,13 +59,17 @@ import net.shibboleth.shared.httpclient.HttpClientBuilder;
 import net.shibboleth.shared.logic.PredicateSupport;
 import net.shibboleth.shared.resolver.CriteriaSet;
 import net.shibboleth.shared.resolver.ResolverException;
-import net.shibboleth.shared.testing.RepositorySupport;
+import net.shibboleth.shared.resource.Resource;
+import net.shibboleth.shared.spring.resource.ResourceHelper;
+import net.shibboleth.shared.testing.EmbeddedJetty;
 
 /**
  * Unit tests for {@link HTTPMetadataResolver}.
  */
 @SuppressWarnings("javadoc")
 public class HTTPMetadataResolverTest extends XMLObjectBaseTestCase {
+
+    private EmbeddedJetty jetty;
     
     private HttpClientBuilder httpClientBuilder;
 
@@ -72,11 +83,22 @@ public class HTTPMetadataResolverTest extends XMLObjectBaseTestCase {
     static final String DATA_PATH = "/org/opensaml/saml/metadata/resolver/impl/";
     
     @BeforeClass
-    protected void setUpClass() {
-        metadataURLHttps = RepositorySupport.buildHTTPSResourceURL("java-opensaml", "opensaml-saml-impl/src/test/resources/org/opensaml/saml/metadata/resolver/impl/08ced64cddc9f1578598b2cf71ae747b11d11472.xml");
-        metadataURLHttp = RepositorySupport.buildHTTPResourceURL("java-opensaml", "opensaml-saml-impl/src/test/resources/org/opensaml/saml/metadata/resolver/impl/08ced64cddc9f1578598b2cf71ae747b11d11472.xml", false);
+    protected void setUpClass() throws UnknownHostException, SocketException {
+        jetty = new EmbeddedJetty();
+        jetty.startServer(new EmbeddedJetty.ResourceHandler(200,
+                ResourceHelper.of(new ClassPathResource("org/opensaml/saml/metadata/resolver/impl/08ced64cddc9f1578598b2cf71ae747b11d11472.xml"))));
+        metadataURLHttps = "https://localhost:8443/08ced64cddc9f1578598b2cf71ae747b11d11472.xml";
+        metadataURLHttp = "http://localhost:8080/08ced64cddc9f1578598b2cf71ae747b11d11472.xml";
     }
 
+    @AfterClass
+    public void stopJetty() {
+        if (jetty != null) {
+            jetty.stopServer();
+            jetty = null;
+        }
+    }
+    
     @BeforeMethod
     protected void setUpMethod() throws Exception {
         httpClientBuilder = new HttpClientBuilder();
@@ -217,7 +239,7 @@ public class HTTPMetadataResolverTest extends XMLObjectBaseTestCase {
         metadataProvider.setId("test");
 
         final HttpClientSecurityParameters params = new HttpClientSecurityParameters();
-        params.setTLSTrustEngine(HTTPMetadataResolverTest.buildExplicitKeyTrustEngine("repo-entity.crt"));
+        params.setTLSTrustEngine(HTTPMetadataResolverTest.buildExplicitKeyTrustEngine(EmbeddedJetty.getServerCertficateResource()));
         metadataProvider.setHttpClientSecurityParameters(params);
         metadataProvider.initialize();
         
@@ -233,8 +255,8 @@ public class HTTPMetadataResolverTest extends XMLObjectBaseTestCase {
     @Test
     public void testHTTPSNoTrustEngine() throws Exception  {
         try {
-            System.setProperty("javax.net.ssl.trustStore", getClass().getResource("repo.truststore.jks").getFile());
-            System.setProperty("javax.net.ssl.trustStorePassword", "shibboleth");
+            System.setProperty("javax.net.ssl.trustStore", EmbeddedJetty.getServerKeystoreResource().getFile().getPath());
+            System.setProperty("javax.net.ssl.trustStorePassword", EmbeddedJetty.getServerKeystorePassword());
 
             httpClientBuilder.setTLSSocketFactory(buildSocketFactory(false));
 
@@ -265,7 +287,7 @@ public class HTTPMetadataResolverTest extends XMLObjectBaseTestCase {
         metadataProvider.setId("test");
 
         final HttpClientSecurityParameters params = new HttpClientSecurityParameters();
-        params.setTLSTrustEngine(HTTPMetadataResolverTest.buildExplicitKeyTrustEngine("repo-entity.crt"));
+        params.setTLSTrustEngine(HTTPMetadataResolverTest.buildExplicitKeyTrustEngine(EmbeddedJetty.getServerCertficateResource()));
         metadataProvider.setHttpClientSecurityParameters(params);
 
         metadataProvider.initialize();
@@ -289,7 +311,8 @@ public class HTTPMetadataResolverTest extends XMLObjectBaseTestCase {
         metadataProvider.setId("test");
 
         final HttpClientSecurityParameters params = new HttpClientSecurityParameters();
-        params.setTLSTrustEngine(HTTPMetadataResolverTest.buildExplicitKeyTrustEngine("badKey.crt"));
+        params.setTLSTrustEngine(HTTPMetadataResolverTest.buildExplicitKeyTrustEngine(
+                ResourceHelper.of(new ClassPathResource(HTTPMetadataResolverTest.DATA_PATH + "badKey.crt"))));
         metadataProvider.setHttpClientSecurityParameters(params);
 
         try {
@@ -312,7 +335,7 @@ public class HTTPMetadataResolverTest extends XMLObjectBaseTestCase {
         metadataProvider.setId("test");
 
         final HttpClientSecurityParameters params = new HttpClientSecurityParameters();
-        params.setTLSTrustEngine(HTTPMetadataResolverTest.buildPKIXTrustEngine("repo-rootCA.crt", null, false));
+        params.setTLSTrustEngine(HTTPMetadataResolverTest.buildPKIXTrustEngine(EmbeddedJetty.getServerCertficateResource(), null, false));
         metadataProvider.setHttpClientSecurityParameters(params);
 
         metadataProvider.initialize();
@@ -335,7 +358,7 @@ public class HTTPMetadataResolverTest extends XMLObjectBaseTestCase {
         metadataProvider.setId("test");
 
         final HttpClientSecurityParameters params = new HttpClientSecurityParameters();
-        params.setTLSTrustEngine(HTTPMetadataResolverTest.buildPKIXTrustEngine("repo-rootCA.crt", "test.shibboleth.net", true));
+        params.setTLSTrustEngine(HTTPMetadataResolverTest.buildPKIXTrustEngine(EmbeddedJetty.getServerCertficateResource(), "localhost", true));
         metadataProvider.setHttpClientSecurityParameters(params);
 
         metadataProvider.initialize();
@@ -358,7 +381,8 @@ public class HTTPMetadataResolverTest extends XMLObjectBaseTestCase {
         metadataProvider.setId("test");
 
         final HttpClientSecurityParameters params = new HttpClientSecurityParameters();
-        params.setTLSTrustEngine(HTTPMetadataResolverTest.buildPKIXTrustEngine("badCA.crt", null, false));
+        params.setTLSTrustEngine(HTTPMetadataResolverTest.buildPKIXTrustEngine(
+                ResourceHelper.of(new ClassPathResource(HTTPMetadataResolverTest.DATA_PATH + "badCA.crt")), null, false));
         metadataProvider.setHttpClientSecurityParameters(params);
 
         try {
@@ -381,7 +405,7 @@ public class HTTPMetadataResolverTest extends XMLObjectBaseTestCase {
         metadataProvider.setId("test");
 
         final HttpClientSecurityParameters params = new HttpClientSecurityParameters();
-        params.setTLSTrustEngine(HTTPMetadataResolverTest.buildPKIXTrustEngine("repo-rootCA.crt", "foobar.shibboleth.net", true));
+        params.setTLSTrustEngine(HTTPMetadataResolverTest.buildPKIXTrustEngine(EmbeddedJetty.getServerCertficateResource(), "badlocalhost", true));
         metadataProvider.setHttpClientSecurityParameters(params);
 
         try {
@@ -403,7 +427,7 @@ public class HTTPMetadataResolverTest extends XMLObjectBaseTestCase {
         metadataProvider.setId("test");
 
         final HttpClientSecurityParameters params = new HttpClientSecurityParameters();
-        params.setTLSTrustEngine(HTTPMetadataResolverTest.buildExplicitKeyTrustEngine("repo-entity.crt"));
+        params.setTLSTrustEngine(HTTPMetadataResolverTest.buildExplicitKeyTrustEngine(EmbeddedJetty.getServerCertficateResource()));
         metadataProvider.setHttpClientSecurityParameters(params);
 
         try {
@@ -418,26 +442,27 @@ public class HTTPMetadataResolverTest extends XMLObjectBaseTestCase {
     }
     
     // Helpers
-    
-    public static TrustEngine<? super X509Credential> buildPKIXTrustEngine(String cert, String name, boolean nameCheckEnabled) throws URISyntaxException, CertificateException, IOException {
-        final InputStream certStream = FileBackedHTTPMetadataResolver.class.getResourceAsStream((HTTPMetadataResolverTest.DATA_PATH + cert));
-        final X509Certificate rootCert = X509Support.decodeCertificate(ByteStreams.toByteArray(certStream));
-        final PKIXValidationInformation info = new BasicPKIXValidationInformation(CollectionSupport.singletonList(rootCert), null, 5);
-        final Set<String> trustedNames = name != null ? CollectionSupport.singleton(name) : CollectionSupport.emptySet();
-        final StaticPKIXValidationInformationResolver resolver = new StaticPKIXValidationInformationResolver(CollectionSupport.singletonList(info), trustedNames);
-        return new PKIXX509CredentialTrustEngine(resolver,
-                new CertPathPKIXTrustEvaluator(),
-                (nameCheckEnabled ? new BasicX509CredentialNameEvaluator() : null));
-    }
 
-    public static TrustEngine<? super X509Credential> buildExplicitKeyTrustEngine(String cert) throws URISyntaxException, CertificateException, IOException {
-        
-        final InputStream certStream = FileBackedHTTPMetadataResolver.class.getResourceAsStream(HTTPMetadataResolverTest.DATA_PATH + cert);
-        final X509Certificate entityCert = X509Support.decodeCertificate(ByteStreams.toByteArray(certStream));
-        final X509Credential entityCredential = new BasicX509Credential(entityCert);
-        return new ExplicitKeyTrustEngine(new StaticCredentialResolver(entityCredential));
-        
+    public static TrustEngine<? super X509Credential> buildPKIXTrustEngine(@Nonnull final Resource cert, @Nullable final String name,
+            final boolean nameCheckEnabled) throws URISyntaxException, CertificateException, IOException {
+        try (final InputStream certStream = cert.getInputStream()) {
+            final X509Certificate rootCert = X509Support.decodeCertificate(ByteStreams.toByteArray(certStream));
+            final PKIXValidationInformation info = new BasicPKIXValidationInformation(CollectionSupport.singletonList(rootCert), null, 5);
+            final Set<String> trustedNames = name != null ? CollectionSupport.singleton(name) : CollectionSupport.emptySet();
+            final StaticPKIXValidationInformationResolver resolver = new StaticPKIXValidationInformationResolver(CollectionSupport.singletonList(info), trustedNames);
+            return new PKIXX509CredentialTrustEngine(resolver,
+                    new CertPathPKIXTrustEvaluator(),
+                    (nameCheckEnabled ? new BasicX509CredentialNameEvaluator() : null));
+        }
     }
+    
+    public static TrustEngine<? super X509Credential> buildExplicitKeyTrustEngine(@Nonnull final Resource cert) throws URISyntaxException, CertificateException, IOException {
+        try (final InputStream certStream = cert.getInputStream()) {
+            final X509Certificate entityCert = X509Support.decodeCertificate(ByteStreams.toByteArray(certStream));
+            final X509Credential entityCredential = new BasicX509Credential(entityCert);
+            return new ExplicitKeyTrustEngine(new StaticCredentialResolver(entityCredential));
+        }
+    }    
 
     public static LayeredConnectionSocketFactory buildSocketFactory() {
         return buildSocketFactory(true);

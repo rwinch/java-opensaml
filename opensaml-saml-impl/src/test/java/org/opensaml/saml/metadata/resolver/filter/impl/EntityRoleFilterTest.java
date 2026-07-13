@@ -27,18 +27,23 @@ import org.opensaml.saml.saml2.metadata.AttributeAuthorityDescriptor;
 import org.opensaml.saml.saml2.metadata.IDPSSODescriptor;
 import org.opensaml.saml.saml2.metadata.SPSSODescriptor;
 import org.opensaml.security.httpclient.HttpClientSecurityParameters;
+import org.springframework.core.io.ClassPathResource;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import net.shibboleth.shared.httpclient.HttpClientBuilder;
-import net.shibboleth.shared.testing.RepositorySupport;
+import net.shibboleth.shared.spring.resource.ResourceHelper;
+import net.shibboleth.shared.testing.EmbeddedJetty;
 
 /**
  * Unit tests for {@link EntityRoleFilter}.
  */
 @SuppressWarnings("javadoc")
 public class EntityRoleFilterTest extends XMLObjectBaseTestCase {
+
+    private EmbeddedJetty jetty;
     
     private HttpClient httpClient;
 
@@ -53,15 +58,27 @@ public class EntityRoleFilterTest extends XMLObjectBaseTestCase {
     
     @BeforeClass
     protected void setUpClass() throws Exception {
+        jetty = new EmbeddedJetty();
+        jetty.startServer(new EmbeddedJetty.ResourceHandler(200,
+                ResourceHelper.of(new ClassPathResource("org/opensaml/saml/saml2/metadata/InCommon-metadata.xml"))));
+        
+        inCommonMDURL = "https://localhost:8443/InCommon-metadata.xml";
+        
         httpClientBuilder = new HttpClientBuilder();
         httpClientBuilder.setConnectionTimeout(Duration.ofSeconds(5));
         httpClientBuilder.setTLSSocketFactory(HTTPMetadataResolverTest.buildSocketFactory());
         httpClient = httpClientBuilder.buildClient();
 
         httpClientParams = new HttpClientSecurityParameters();
-        httpClientParams.setTLSTrustEngine(HTTPMetadataResolverTest.buildExplicitKeyTrustEngine("repo-entity.crt"));
-
-        inCommonMDURL = RepositorySupport.buildHTTPSResourceURL("java-opensaml", "opensaml-saml-impl/src/test/resources/org/opensaml/saml/saml2/metadata/InCommon-metadata.xml");
+        httpClientParams.setTLSTrustEngine(HTTPMetadataResolverTest.buildExplicitKeyTrustEngine(EmbeddedJetty.getServerCertficateResource()));
+    }
+    
+    @AfterClass
+    protected void tearDownClass() {
+        if (jetty != null) {
+            jetty.stopServer();
+            jetty = null;
+        }
     }
 
     @BeforeMethod

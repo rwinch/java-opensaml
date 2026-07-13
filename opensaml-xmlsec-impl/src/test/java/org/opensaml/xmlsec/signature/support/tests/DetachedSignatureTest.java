@@ -14,6 +14,7 @@
 
 package org.opensaml.xmlsec.signature.support.tests;
 
+import java.io.IOException;
 import java.security.KeyPair;
 import java.util.List;
 
@@ -42,13 +43,15 @@ import org.opensaml.xmlsec.signature.support.SignatureValidator;
 import org.opensaml.xmlsec.signature.support.Signer;
 import org.opensaml.xmlsec.signature.support.URIContentReference;
 import org.slf4j.Logger;
+import org.springframework.core.io.ClassPathResource;
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 import org.w3c.dom.Element;
 
 import net.shibboleth.shared.primitive.LoggerFactory;
-import net.shibboleth.shared.testing.RepositorySupport;
+import net.shibboleth.shared.spring.resource.ResourceHelper;
+import net.shibboleth.shared.testing.EmbeddedJetty;
 import net.shibboleth.shared.xml.SerializeSupport;
 import net.shibboleth.shared.xml.impl.BasicParserPool;
 
@@ -135,10 +138,11 @@ public class DetachedSignatureTest extends XMLObjectBaseTestCase {
      * external references used are the InCommon and InQueue metadata files.
      * 
      * @throws MarshallingException thrown if the XMLObject tree can not be marshalled
-     * @throws SignatureException ...
+     * @throws SignatureException
+     * @throws IOException 
      */
     @Test
-    public void testExternalSignatureAndVerification() throws MarshallingException, SignatureException {
+    public void testExternalSignatureAndVerification() throws MarshallingException, SignatureException, IOException {
         // This is necessary as of Santuario 2.3.0, which removed the -DirectHTTP and -LocalFilesystem resolvers by default.
         // Unfortunately it's stored in static storage and no way to clear or reset after the test.
         ResourceResolver.register(new ResolverDirectHTTP(), false);
@@ -149,21 +153,32 @@ public class DetachedSignatureTest extends XMLObjectBaseTestCase {
         signature.setSignatureAlgorithm(SignatureConstants.ALGO_ID_SIGNATURE_RSA);
 
         //Note: we have to use a http URL here, not https, as current default Santuario HTTP ResourceResolver doesn't support https URLs.
-        String incommonMetadata = (RepositorySupport.buildHTTPResourceURL("java-opensaml", "opensaml-xmlsec-impl/src/test/resources/org/opensaml/xmlsec/signature/support/InCommon-metadata.xml", false));
-        URIContentReference contentReference = new URIContentReference(incommonMetadata);
+        URIContentReference contentReference = new URIContentReference("http://localhost:8080/InCommon-metadata.xml");
         contentReference.getTransforms().add(SignatureConstants.TRANSFORM_C14N_EXCL_OMIT_COMMENTS);
         contentReference.setDigestAlgorithm(SignatureConstants.ALGO_ID_DIGEST_SHA1);
         signature.getContentReferences().add(contentReference);
 
         Marshaller marshaller = XMLObjectProviderRegistrySupport.getMarshallerFactory().ensureMarshaller(signature);
         Element signatureElement = marshaller.marshall(signature);
+        
+        try (final EmbeddedJetty jetty = new EmbeddedJetty()) {
+            jetty.startServer(new EmbeddedJetty.ResourceHandler(200,
+                    ResourceHelper.of(new ClassPathResource("org/opensaml/xmlsec/signature/support/InCommon-metadata.xml"))));
 
-        Signer.signObject(signature);
-        if (log.isDebugEnabled()) {
-            log.debug("Marshalled deatched Signature: \n" + SerializeSupport.nodeToString(signatureElement));
+            Signer.signObject(signature);
+            if (log.isDebugEnabled()) {
+                log.debug("Marshalled deatched Signature: \n" + SerializeSupport.nodeToString(signatureElement));
+            }
+
+            SignatureValidator.validate(signature, goodCredential);
+            
+            try {
+                SignatureValidator.validate(signature, badCredential);
+                Assert.fail("Validated signature with improper public key");
+            } catch (SignatureException e) {
+                // expected
+            }
         }
-
-        SignatureValidator.validate(signature, goodCredential);
     }
 
     /**

@@ -14,9 +14,14 @@
 
 package org.opensaml.saml.metadata.resolver.impl;
 
+import java.net.SocketException;
+import java.net.UnknownHostException;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.util.Arrays;
+
+import javax.annotation.Nonnull;
+
 
 import org.opensaml.core.criterion.EntityIdCriterion;
 import org.opensaml.core.testing.XMLObjectBaseTestCase;
@@ -27,8 +32,11 @@ import org.opensaml.saml.saml2.binding.artifact.SAML2ArtifactType0004;
 import org.opensaml.saml.saml2.metadata.EntityDescriptor;
 import org.opensaml.security.crypto.JCAConstants;
 import org.opensaml.security.httpclient.HttpClientSecurityParameters;
+import org.springframework.core.io.ClassPathResource;
 import org.testng.Assert;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.AfterMethod;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -38,19 +46,53 @@ import net.shibboleth.shared.codec.StringDigester;
 import net.shibboleth.shared.codec.StringDigester.OutputFormat;
 import net.shibboleth.shared.collection.CollectionSupport;
 import net.shibboleth.shared.httpclient.HttpClientBuilder;
+import net.shibboleth.shared.primitive.NonnullSupplier;
 import net.shibboleth.shared.resolver.CriteriaSet;
-import net.shibboleth.shared.testing.RepositorySupport;
+import net.shibboleth.shared.resource.Resource;
+import net.shibboleth.shared.spring.resource.ResourceHelper;
+import net.shibboleth.shared.testing.EmbeddedJetty;
 import net.shibboleth.shared.testing.VelocityEngine;
 
 @SuppressWarnings("javadoc")
 public class FunctionDrivenDynamicHTTPMetadataResolverTest extends XMLObjectBaseTestCase {
     
+    private EmbeddedJetty jetty;
+    private int jettyStatus;
+
+    private Resource relativeMDResource;
+    
     private FunctionDrivenDynamicHTTPMetadataResolver resolver;
     
     private HttpClientBuilder httpClientBuilder;
     
+    @BeforeClass
+    public void startJetty() throws UnknownHostException, SocketException {
+        relativeMDResource = ResourceHelper.of(new ClassPathResource("org/opensaml/saml/metadata/resolver/impl/localhost-sp.xml"));
+
+        jetty = new EmbeddedJetty();
+        final var handler = new EmbeddedJetty.ResourceHandler(
+                new NonnullSupplier<Integer>() {
+                    @Nonnull public Integer get() {
+                        return jettyStatus;
+                    }
+                },
+                NonnullSupplier.of(relativeMDResource)
+                ); 
+        handler.setContentType("text/xml");
+        jetty.startServer(handler);
+    }
+    
+    @AfterClass
+    public void stopJetty() {
+        if (jetty != null) {
+            jetty.stopServer();
+            jetty = null;
+        }
+    }
+    
     @BeforeMethod
     public void setUp() {
+        jettyStatus = 200;
         httpClientBuilder = new HttpClientBuilder();
     }
     
@@ -65,11 +107,11 @@ public class FunctionDrivenDynamicHTTPMetadataResolverTest extends XMLObjectBase
     @Test
     public void testInactive() throws Exception {
         // Repo should return 'text/xml', which is supported by default.
-        String template = RepositorySupport.buildHTTPResourceURL("java-opensaml", "opensaml-saml-impl/src/test/resources/org/opensaml/saml/metadata/resolver/impl/${entityID}.xml", false);
-        String entityID = "https://www.example.org/sp";
+        final String template = "http://localhost:8080/entities/${entityID}.xml";
+        final String entityID = "https://localhost:8443/sp";
         
         // Digesting the entityID is a little artificial for the test, but means we can test more easily against a path in the repo.
-        TemplateRequestURLBuilder requestURLBuilder = new TemplateRequestURLBuilder(
+        final TemplateRequestURLBuilder requestURLBuilder = new TemplateRequestURLBuilder(
                 VelocityEngine.newVelocityEngine(), 
                 template, 
                 EncodingStyle.path, 
@@ -82,20 +124,20 @@ public class FunctionDrivenDynamicHTTPMetadataResolverTest extends XMLObjectBase
         resolver.setActivationCondition(Predicates.alwaysFalse());
         resolver.initialize();
         
-        CriteriaSet criteriaSet = new CriteriaSet( new EntityIdCriterion(entityID));
+        final CriteriaSet criteriaSet = new CriteriaSet( new EntityIdCriterion(entityID));
         
-        EntityDescriptor ed = resolver.resolveSingle(criteriaSet);
+        final EntityDescriptor ed = resolver.resolveSingle(criteriaSet);
         Assert.assertNull(ed);
     }
     
     @Test
     public void testTemplateFromRepoDefaultContentTypes() throws Exception {
-        // Repo should return 'text/xml', which is supported by default.
-        String template = RepositorySupport.buildHTTPResourceURL("java-opensaml", "opensaml-saml-impl/src/test/resources/org/opensaml/saml/metadata/resolver/impl/${entityID}.xml", false);
-        String entityID = "https://www.example.org/sp";
+        // Jetty should return 'text/xml', which is supported by default.
+        final String template = "http://localhost:8080/entities/${entityID}.xml";
+        final String entityID = "https://localhost:8443/sp";
         
         // Digesting the entityID is a little artificial for the test, but means we can test more easily against a path in the repo.
-        TemplateRequestURLBuilder requestURLBuilder = new TemplateRequestURLBuilder(
+        final TemplateRequestURLBuilder requestURLBuilder = new TemplateRequestURLBuilder(
                 VelocityEngine.newVelocityEngine(), 
                 template, 
                 EncodingStyle.path, 
@@ -107,52 +149,22 @@ public class FunctionDrivenDynamicHTTPMetadataResolverTest extends XMLObjectBase
         resolver.setRequestURLBuilder(requestURLBuilder);
         resolver.initialize();
         
-        CriteriaSet criteriaSet = new CriteriaSet( new EntityIdCriterion(entityID));
+        final CriteriaSet criteriaSet = new CriteriaSet( new EntityIdCriterion(entityID));
         
         final EntityDescriptor ed = resolver.resolveSingle(criteriaSet);
         assert ed != null;
         Assert.assertEquals(ed.getEntityID(), entityID);
         Assert.assertNull(ed.getDOM());
     }
-   
-    //TODO disabled b/c gitweb currently doesn't seem to have a way to request a different MIME type
-    @Test(enabled=false)
-    public void testTemplateFromRepoWithExplicitContentType() throws Exception {
-        // Explicitly request 'text/plain', and then configure it below to be supported.  Also test case-insensitivity.
-        String template = RepositorySupport.buildHTTPResourceURL("java-opensaml", "opensaml-saml-impl/src/test/resources/org/opensaml/saml/metadata/resolver/impl/${entityID}.xml", false);
-        String entityID = "https://www.example.org/sp";
-        
-        // Digesting the entityID is a little artificial for the test, but means we can test more easily against a path in the repo.
-        TemplateRequestURLBuilder requestURLBuilder = new TemplateRequestURLBuilder(
-                VelocityEngine.newVelocityEngine(), 
-                template, 
-                EncodingStyle.path, 
-                new StringDigester("SHA-1", OutputFormat.HEX_LOWER));
-        
-        resolver = new FunctionDrivenDynamicHTTPMetadataResolver(httpClientBuilder.buildClient());
-        resolver.setId("myDynamicResolver");
-        resolver.setParserPool(parserPool);
-        resolver.setRequestURLBuilder(requestURLBuilder);
-        resolver.setSupportedContentTypes(Arrays.asList("application/samlmetadata+xml", "application/xml", "text/xml", "TEXT/PLAIN"));
-        resolver.initialize();
-        
-        CriteriaSet criteriaSet = new CriteriaSet( new EntityIdCriterion(entityID));
-        
-        final EntityDescriptor ed = resolver.resolveSingle(criteriaSet);
-        assert ed != null;
-        Assert.assertEquals(ed.getEntityID(), entityID);
-        Assert.assertNull(ed.getDOM());
-    }
-    
-    //TODO disabled b/c gitweb currently doesn't seem to have a way to request a different MIME type
-    @Test(enabled=false)
+
+    @Test
     public void testTemplateFromRepoUnsupportedContentType() throws Exception {
         // Repo should return 'text/plain', which is not supported by default.
-        String template = RepositorySupport.buildHTTPSResourceURL("java-opensaml", "opensaml-saml-impl/src/test/resources/org/opensaml/saml/metadata/resolver/impl/${entityID}.xml");
-        String entityID = "https://www.example.org/sp";
+        final String template = "http://localhost:8080/entities/${entityID}.xml";
+        final String entityID = "https://localhost:8443/sp";
         
         // Digesting the entityID is a little artificial for the test, but means we can test more easily against a path in the repo.
-        TemplateRequestURLBuilder requestURLBuilder = new TemplateRequestURLBuilder(
+        final TemplateRequestURLBuilder requestURLBuilder = new TemplateRequestURLBuilder(
                 VelocityEngine.newVelocityEngine(), 
                 template, 
                 EncodingStyle.path, 
@@ -162,9 +174,10 @@ public class FunctionDrivenDynamicHTTPMetadataResolverTest extends XMLObjectBase
         resolver.setId("myDynamicResolver");
         resolver.setParserPool(parserPool);
         resolver.setRequestURLBuilder(requestURLBuilder);
+        resolver.setSupportedContentTypes(Arrays.asList("application/samlmetadata+xml", "application/xml"));
         resolver.initialize();
         
-        CriteriaSet criteriaSet = new CriteriaSet( new EntityIdCriterion(entityID));
+        final CriteriaSet criteriaSet = new CriteriaSet( new EntityIdCriterion(entityID));
         
         final EntityDescriptor ed = resolver.resolveSingle(criteriaSet);
         Assert.assertNull(ed);
@@ -173,10 +186,10 @@ public class FunctionDrivenDynamicHTTPMetadataResolverTest extends XMLObjectBase
     @Test
     public void testTemplateNonexistentDomain() throws Exception {
         // Unresolveable domain.  Should silently fail.
-        String template = "http://bogus.example.org/metadata?entityID=${entityID}";
-        String entityID = "https://www.example.org/sp";
+        final String template = "http://bogus.example.org/metadata?entityID=${entityID}";
+        final String entityID = "https://localhost:8443/sp";
         
-        TemplateRequestURLBuilder requestURLBuilder = new TemplateRequestURLBuilder(
+        final TemplateRequestURLBuilder requestURLBuilder = new TemplateRequestURLBuilder(
                 VelocityEngine.newVelocityEngine(), 
                 template, 
                 EncodingStyle.form);
@@ -187,7 +200,7 @@ public class FunctionDrivenDynamicHTTPMetadataResolverTest extends XMLObjectBase
         resolver.setRequestURLBuilder(requestURLBuilder);
         resolver.initialize();
         
-        CriteriaSet criteriaSet = new CriteriaSet( new EntityIdCriterion(entityID));
+        final CriteriaSet criteriaSet = new CriteriaSet( new EntityIdCriterion(entityID));
         
         final EntityDescriptor ed = resolver.resolveSingle(criteriaSet);
         Assert.assertNull(ed);
@@ -195,11 +208,12 @@ public class FunctionDrivenDynamicHTTPMetadataResolverTest extends XMLObjectBase
     
     @Test
     public void testTemplateNonexistentPath() throws Exception {
-        // Bad path, resulting in 404.  Should silently fail.
-        String template = "http://test.shibboleth.net/unittests/metadata?entityID=${entityID}";
-        String entityID = "https://www.example.org/sp";
+        jettyStatus = 404;
         
-        TemplateRequestURLBuilder requestURLBuilder = new TemplateRequestURLBuilder(
+        final String template = "http://localhost:8080/entities/${entityID}.xml";
+        final String entityID = "https://localhost:8443/sp";
+        
+        final TemplateRequestURLBuilder requestURLBuilder = new TemplateRequestURLBuilder(
                 VelocityEngine.newVelocityEngine(), 
                 template, 
                 EncodingStyle.form);
@@ -210,7 +224,7 @@ public class FunctionDrivenDynamicHTTPMetadataResolverTest extends XMLObjectBase
         resolver.setRequestURLBuilder(requestURLBuilder);
         resolver.initialize();
         
-        CriteriaSet criteriaSet = new CriteriaSet( new EntityIdCriterion(entityID));
+        final CriteriaSet criteriaSet = new CriteriaSet( new EntityIdCriterion(entityID));
         
         final EntityDescriptor ed = resolver.resolveSingle(criteriaSet);
         Assert.assertNull(ed);
@@ -218,9 +232,9 @@ public class FunctionDrivenDynamicHTTPMetadataResolverTest extends XMLObjectBase
     
     @Test
     public void testWellKnownLocation() throws Exception {
-        String entityID = "https://test.shibboleth.net/shibboleth";
+        final String entityID = "https://localhost:8443/sp";
         
-        HTTPEntityIDRequestURLBuilder requestURLBuilder = new HTTPEntityIDRequestURLBuilder();
+        final HTTPEntityIDRequestURLBuilder requestURLBuilder = new HTTPEntityIDRequestURLBuilder();
         
         httpClientBuilder.setTLSSocketFactory(HTTPMetadataResolverTest.buildSocketFactory());
         
@@ -230,12 +244,12 @@ public class FunctionDrivenDynamicHTTPMetadataResolverTest extends XMLObjectBase
         resolver.setRequestURLBuilder(requestURLBuilder);
         
         final HttpClientSecurityParameters params = new HttpClientSecurityParameters();
-        params.setTLSTrustEngine(HTTPMetadataResolverTest.buildExplicitKeyTrustEngine("test.shibboleth.net.crt"));
+        params.setTLSTrustEngine(HTTPMetadataResolverTest.buildExplicitKeyTrustEngine(EmbeddedJetty.getServerCertficateResource()));
         resolver.setHttpClientSecurityParameters(params);
         
         resolver.initialize();
         
-        CriteriaSet criteriaSet = new CriteriaSet( new EntityIdCriterion(entityID));
+        final CriteriaSet criteriaSet = new CriteriaSet( new EntityIdCriterion(entityID));
         
         final EntityDescriptor ed = resolver.resolveSingle(criteriaSet);
         assert ed != null;
@@ -245,10 +259,10 @@ public class FunctionDrivenDynamicHTTPMetadataResolverTest extends XMLObjectBase
     
     @Test
     public void testMDQ() throws Exception {
-        String baseURL = "http://mdq.incommon.org";
-        String entityID = "urn:mace:incommon:osu.edu";
+        final String baseURL = "http://mdq.incommon.org";
+        final String entityID = "urn:mace:incommon:osu.edu";
         
-        MetadataQueryProtocolRequestURLBuilder requestURLBuilder = new MetadataQueryProtocolRequestURLBuilder(baseURL);
+        final MetadataQueryProtocolRequestURLBuilder requestURLBuilder = new MetadataQueryProtocolRequestURLBuilder(baseURL);
         
         httpClientBuilder.setConnectionDisregardTLSCertificate(true);
         resolver = new FunctionDrivenDynamicHTTPMetadataResolver(httpClientBuilder.buildClient());
@@ -257,7 +271,7 @@ public class FunctionDrivenDynamicHTTPMetadataResolverTest extends XMLObjectBase
         resolver.setRequestURLBuilder(requestURLBuilder);
         resolver.initialize();
         
-        CriteriaSet criteriaSet = new CriteriaSet( new EntityIdCriterion(entityID));
+        final CriteriaSet criteriaSet = new CriteriaSet( new EntityIdCriterion(entityID));
         
         final EntityDescriptor ed = resolver.resolveSingle(criteriaSet);
         assert ed != null;
@@ -267,10 +281,10 @@ public class FunctionDrivenDynamicHTTPMetadataResolverTest extends XMLObjectBase
     
     @Test
     public void testMDQViaArtifact() throws Exception {
-        String baseURL = "http://mdq.incommon.org";
-        String entityID = "urn:mace:incommon:osu.edu";
+        final String baseURL = "http://mdq.incommon.org";
+        final String entityID = "urn:mace:incommon:osu.edu";
         
-        MetadataQueryProtocolRequestURLBuilder requestURLBuilder = new MetadataQueryProtocolRequestURLBuilder(baseURL,
+        final MetadataQueryProtocolRequestURLBuilder requestURLBuilder = new MetadataQueryProtocolRequestURLBuilder(baseURL,
                 CollectionSupport.singletonList(new SAMLArtifactURLBuilder()));
         
         httpClientBuilder.setConnectionDisregardTLSCertificate(true);
@@ -280,12 +294,12 @@ public class FunctionDrivenDynamicHTTPMetadataResolverTest extends XMLObjectBase
         resolver.setRequestURLBuilder(requestURLBuilder);
         resolver.initialize();
         
-        MessageDigest sha1Digester = MessageDigest.getInstance(JCAConstants.DIGEST_SHA1);
+        final MessageDigest sha1Digester = MessageDigest.getInstance(JCAConstants.DIGEST_SHA1);
         byte[] entityIDSourceID = sha1Digester.digest(entityID.getBytes("UTF-8"));
-        SecureRandom secureRandom = SecureRandom.getInstance("SHA1PRNG");
+        final SecureRandom secureRandom = SecureRandom.getInstance("SHA1PRNG");
         byte[] messageHandle = new byte[20];
         secureRandom.nextBytes(messageHandle);
-        SAMLSourceIDArtifact sourceIDArtifact = new SAML2ArtifactType0004(new byte[] {0, 0} , entityIDSourceID, messageHandle);
+        final SAMLSourceIDArtifact sourceIDArtifact = new SAML2ArtifactType0004(new byte[] {0, 0} , entityIDSourceID, messageHandle);
         
         final CriteriaSet criteriaSet = new CriteriaSet( new ArtifactCriterion(sourceIDArtifact));
         
@@ -297,11 +311,11 @@ public class FunctionDrivenDynamicHTTPMetadataResolverTest extends XMLObjectBase
     
     @Test
     public void testTrustEngineSocketFactoryNoHTTPSNoTrustEngine() throws Exception {
-        String template = RepositorySupport.buildHTTPResourceURL("java-opensaml", "opensaml-saml-impl/src/test/resources/org/opensaml/saml/metadata/resolver/impl/${entityID}.xml", false);
-        String entityID = "https://www.example.org/sp";
+        final String template = "http://localhost:8080/entities/${entityID}.xml";
+        final String entityID = "https://localhost:8443/sp";
         
         // Digesting the entityID is a little artificial for the test, but means we can test more easily against a path in the repo.
-        TemplateRequestURLBuilder requestURLBuilder = new TemplateRequestURLBuilder(
+        final TemplateRequestURLBuilder requestURLBuilder = new TemplateRequestURLBuilder(
                 VelocityEngine.newVelocityEngine(), 
                 template, 
                 EncodingStyle.path, 
@@ -315,7 +329,7 @@ public class FunctionDrivenDynamicHTTPMetadataResolverTest extends XMLObjectBase
         resolver.setRequestURLBuilder(requestURLBuilder);
         resolver.initialize();
         
-        CriteriaSet criteriaSet = new CriteriaSet( new EntityIdCriterion(entityID));
+        final CriteriaSet criteriaSet = new CriteriaSet( new EntityIdCriterion(entityID));
         
         final EntityDescriptor ed = resolver.resolveSingle(criteriaSet);
         assert ed != null;
@@ -325,11 +339,11 @@ public class FunctionDrivenDynamicHTTPMetadataResolverTest extends XMLObjectBase
     
     @Test
     public void testTrustEngineSocketFactoryNoHTTPSWithTrustEngine() throws Exception  {
-        String template = RepositorySupport.buildHTTPResourceURL("java-opensaml", "opensaml-saml-impl/src/test/resources/org/opensaml/saml/metadata/resolver/impl/${entityID}.xml", false);
-        String entityID = "https://www.example.org/sp";
+        final String template = "http://localhost:8080/entities/${entityID}.xml";
+        final String entityID = "https://localhost:8443/sp";
         
         // Digesting the entityID is a little artificial for the test, but means we can test more easily against a path in the repo.
-        TemplateRequestURLBuilder requestURLBuilder = new TemplateRequestURLBuilder(
+        final TemplateRequestURLBuilder requestURLBuilder = new TemplateRequestURLBuilder(
                 VelocityEngine.newVelocityEngine(), 
                 template, 
                 EncodingStyle.path, 
@@ -343,12 +357,12 @@ public class FunctionDrivenDynamicHTTPMetadataResolverTest extends XMLObjectBase
         resolver.setRequestURLBuilder(requestURLBuilder);
 
         final HttpClientSecurityParameters params = new HttpClientSecurityParameters();
-        params.setTLSTrustEngine(HTTPMetadataResolverTest.buildExplicitKeyTrustEngine("repo-entity.crt"));
+        params.setTLSTrustEngine(HTTPMetadataResolverTest.buildExplicitKeyTrustEngine(EmbeddedJetty.getServerCertficateResource()));
         resolver.setHttpClientSecurityParameters(params);
 
         resolver.initialize();
         
-        CriteriaSet criteriaSet = new CriteriaSet( new EntityIdCriterion(entityID));
+        final CriteriaSet criteriaSet = new CriteriaSet( new EntityIdCriterion(entityID));
         
         final EntityDescriptor ed = resolver.resolveSingle(criteriaSet);
         assert ed != null;
@@ -359,14 +373,14 @@ public class FunctionDrivenDynamicHTTPMetadataResolverTest extends XMLObjectBase
     @Test
     public void testHTTPSNoTrustEngine() throws Exception  {
         try {
-            System.setProperty("javax.net.ssl.trustStore", getClass().getResource("repo.truststore.jks").getFile());
-            System.setProperty("javax.net.ssl.trustStorePassword", "shibboleth");
+            System.setProperty("javax.net.ssl.trustStore", EmbeddedJetty.getServerKeystoreResource().getFile().getPath());
+            System.setProperty("javax.net.ssl.trustStorePassword", EmbeddedJetty.getServerKeystorePassword());
             
-            String template = RepositorySupport.buildHTTPSResourceURL("java-opensaml", "opensaml-saml-impl/src/test/resources/org/opensaml/saml/metadata/resolver/impl/${entityID}.xml");
-            String entityID = "https://www.example.org/sp";
+            final String template = "https://localhost:8443/entities/${entityID}.xml";
+            final String entityID = "https://localhost:8443/sp";
 
             // Digesting the entityID is a little artificial for the test, but means we can test more easily against a path in the repo.
-            TemplateRequestURLBuilder requestURLBuilder = new TemplateRequestURLBuilder(
+            final TemplateRequestURLBuilder requestURLBuilder = new TemplateRequestURLBuilder(
                     VelocityEngine.newVelocityEngine(), 
                     template, 
                     EncodingStyle.path, 
@@ -380,7 +394,7 @@ public class FunctionDrivenDynamicHTTPMetadataResolverTest extends XMLObjectBase
             resolver.setRequestURLBuilder(requestURLBuilder);
             resolver.initialize();
 
-            CriteriaSet criteriaSet = new CriteriaSet( new EntityIdCriterion(entityID));
+            final CriteriaSet criteriaSet = new CriteriaSet( new EntityIdCriterion(entityID));
 
             final EntityDescriptor ed = resolver.resolveSingle(criteriaSet);
             assert ed != null;
@@ -394,11 +408,11 @@ public class FunctionDrivenDynamicHTTPMetadataResolverTest extends XMLObjectBase
     
     @Test
     public void testHTTPSTrustEngineExplicitKey() throws Exception  {
-        String template = RepositorySupport.buildHTTPSResourceURL("java-opensaml", "opensaml-saml-impl/src/test/resources/org/opensaml/saml/metadata/resolver/impl/${entityID}.xml");
-        String entityID = "https://www.example.org/sp";
+        final String template = "https://localhost:8443/entities/${entityID}.xml";
+        final String entityID = "https://localhost:8443/sp";
         
         // Digesting the entityID is a little artificial for the test, but means we can test more easily against a path in the repo.
-        TemplateRequestURLBuilder requestURLBuilder = new TemplateRequestURLBuilder(
+        final TemplateRequestURLBuilder requestURLBuilder = new TemplateRequestURLBuilder(
                 VelocityEngine.newVelocityEngine(), 
                 template, 
                 EncodingStyle.path, 
@@ -412,12 +426,12 @@ public class FunctionDrivenDynamicHTTPMetadataResolverTest extends XMLObjectBase
         resolver.setRequestURLBuilder(requestURLBuilder);
 
         final HttpClientSecurityParameters params = new HttpClientSecurityParameters();
-        params.setTLSTrustEngine(HTTPMetadataResolverTest.buildExplicitKeyTrustEngine("repo-entity.crt"));
+        params.setTLSTrustEngine(HTTPMetadataResolverTest.buildExplicitKeyTrustEngine(EmbeddedJetty.getServerCertficateResource()));
         resolver.setHttpClientSecurityParameters(params);
-
+        
         resolver.initialize();
         
-        CriteriaSet criteriaSet = new CriteriaSet( new EntityIdCriterion(entityID));
+        final CriteriaSet criteriaSet = new CriteriaSet( new EntityIdCriterion(entityID));
         
         final EntityDescriptor ed = resolver.resolveSingle(criteriaSet);
         assert ed != null;
@@ -427,11 +441,11 @@ public class FunctionDrivenDynamicHTTPMetadataResolverTest extends XMLObjectBase
     
     @Test
     public void testHTTPSTrustEngineInvalidKey()  throws Exception {
-        String template = RepositorySupport.buildHTTPSResourceURL("java-opensaml", "opensaml-saml-impl/src/test/resources/org/opensaml/saml/metadata/resolver/impl/${entityID}.xml");
-        String entityID = "https://www.example.org/sp";
+        final String template = "https://localhost:8443/entities/${entityID}.xml";
+        final String entityID = "https://localhost:8443/sp";
         
         // Digesting the entityID is a little artificial for the test, but means we can test more easily against a path in the repo.
-        TemplateRequestURLBuilder requestURLBuilder = new TemplateRequestURLBuilder(
+        final TemplateRequestURLBuilder requestURLBuilder = new TemplateRequestURLBuilder(
                 VelocityEngine.newVelocityEngine(), 
                 template, 
                 EncodingStyle.path, 
@@ -445,12 +459,13 @@ public class FunctionDrivenDynamicHTTPMetadataResolverTest extends XMLObjectBase
         resolver.setRequestURLBuilder(requestURLBuilder);
 
         final HttpClientSecurityParameters params = new HttpClientSecurityParameters();
-        params.setTLSTrustEngine(HTTPMetadataResolverTest.buildExplicitKeyTrustEngine("badKey.crt"));
+        params.setTLSTrustEngine(HTTPMetadataResolverTest.buildExplicitKeyTrustEngine(
+                ResourceHelper.of(new ClassPathResource(HTTPMetadataResolverTest.DATA_PATH + "badKey.crt"))));
         resolver.setHttpClientSecurityParameters(params);
-
+        
         resolver.initialize();
         
-        CriteriaSet criteriaSet = new CriteriaSet( new EntityIdCriterion(entityID));
+        final CriteriaSet criteriaSet = new CriteriaSet( new EntityIdCriterion(entityID));
         
         final EntityDescriptor ed = resolver.resolveSingle(criteriaSet);
         Assert.assertNull(ed);
@@ -458,11 +473,11 @@ public class FunctionDrivenDynamicHTTPMetadataResolverTest extends XMLObjectBase
     
     @Test
     public void testHTTPSTrustEngineValidPKIX() throws Exception  {
-        String template = RepositorySupport.buildHTTPSResourceURL("java-opensaml", "opensaml-saml-impl/src/test/resources/org/opensaml/saml/metadata/resolver/impl/${entityID}.xml");
-        String entityID = "https://www.example.org/sp";
+        final String template = "https://localhost:8443/entities/${entityID}.xml";
+        final String entityID = "https://localhost:8443/sp";
         
         // Digesting the entityID is a little artificial for the test, but means we can test more easily against a path in the repo.
-        TemplateRequestURLBuilder requestURLBuilder = new TemplateRequestURLBuilder(
+        final TemplateRequestURLBuilder requestURLBuilder = new TemplateRequestURLBuilder(
                 VelocityEngine.newVelocityEngine(), 
                 template, 
                 EncodingStyle.path, 
@@ -476,12 +491,12 @@ public class FunctionDrivenDynamicHTTPMetadataResolverTest extends XMLObjectBase
         resolver.setRequestURLBuilder(requestURLBuilder);
 
         final HttpClientSecurityParameters params = new HttpClientSecurityParameters();
-        params.setTLSTrustEngine(HTTPMetadataResolverTest.buildPKIXTrustEngine("repo-rootCA.crt", null, false));
+        params.setTLSTrustEngine(HTTPMetadataResolverTest.buildPKIXTrustEngine(EmbeddedJetty.getServerCertficateResource(), null, false));
         resolver.setHttpClientSecurityParameters(params);
-
+        
         resolver.initialize();
         
-        CriteriaSet criteriaSet = new CriteriaSet( new EntityIdCriterion(entityID));
+        final CriteriaSet criteriaSet = new CriteriaSet( new EntityIdCriterion(entityID));
         
         final EntityDescriptor ed = resolver.resolveSingle(criteriaSet);
         assert ed != null;
@@ -491,11 +506,11 @@ public class FunctionDrivenDynamicHTTPMetadataResolverTest extends XMLObjectBase
     
     @Test
     public void testHTTPSTrustEngineValidPKIXExplicitName() throws Exception  {
-        String template = RepositorySupport.buildHTTPSResourceURL("java-opensaml", "opensaml-saml-impl/src/test/resources/org/opensaml/saml/metadata/resolver/impl/${entityID}.xml");
-        String entityID = "https://www.example.org/sp";
+        final String template = "https://localhost:8443/entities/${entityID}.xml";
+        final String entityID = "https://localhost:8443/sp";
         
         // Digesting the entityID is a little artificial for the test, but means we can test more easily against a path in the repo.
-        TemplateRequestURLBuilder requestURLBuilder = new TemplateRequestURLBuilder(
+        final TemplateRequestURLBuilder requestURLBuilder = new TemplateRequestURLBuilder(
                 VelocityEngine.newVelocityEngine(), 
                 template, 
                 EncodingStyle.path, 
@@ -509,12 +524,12 @@ public class FunctionDrivenDynamicHTTPMetadataResolverTest extends XMLObjectBase
         resolver.setRequestURLBuilder(requestURLBuilder);
 
         final HttpClientSecurityParameters params = new HttpClientSecurityParameters();
-        params.setTLSTrustEngine(HTTPMetadataResolverTest.buildPKIXTrustEngine("repo-rootCA.crt", "test.shibboleth.net", true));
+        params.setTLSTrustEngine(HTTPMetadataResolverTest.buildPKIXTrustEngine(EmbeddedJetty.getServerCertficateResource(), "localhost", true));
         resolver.setHttpClientSecurityParameters(params);
-
+        
         resolver.initialize();
         
-        CriteriaSet criteriaSet = new CriteriaSet( new EntityIdCriterion(entityID));
+        final CriteriaSet criteriaSet = new CriteriaSet( new EntityIdCriterion(entityID));
         
         final EntityDescriptor ed = resolver.resolveSingle(criteriaSet);
         assert ed != null;
@@ -524,11 +539,11 @@ public class FunctionDrivenDynamicHTTPMetadataResolverTest extends XMLObjectBase
     
     @Test
     public void testHTTPSTrustEngineInvalidPKIX() throws Exception  {
-        String template = RepositorySupport.buildHTTPSResourceURL("java-opensaml", "opensaml-saml-impl/src/test/resources/org/opensaml/saml/metadata/resolver/impl/${entityID}.xml");
-        String entityID = "https://www.example.org/sp";
+        final String template = "https://localhost:8443/entities/${entityID}.xml";
+        final String entityID = "https://localhost:8443/sp";
         
         // Digesting the entityID is a little artificial for the test, but means we can test more easily against a path in the repo.
-        TemplateRequestURLBuilder requestURLBuilder = new TemplateRequestURLBuilder(
+        final TemplateRequestURLBuilder requestURLBuilder = new TemplateRequestURLBuilder(
                 VelocityEngine.newVelocityEngine(), 
                 template, 
                 EncodingStyle.path, 
@@ -542,12 +557,13 @@ public class FunctionDrivenDynamicHTTPMetadataResolverTest extends XMLObjectBase
         resolver.setRequestURLBuilder(requestURLBuilder);
 
         final HttpClientSecurityParameters params = new HttpClientSecurityParameters();
-        params.setTLSTrustEngine(HTTPMetadataResolverTest.buildPKIXTrustEngine("badCA.crt", null, false));
+        params.setTLSTrustEngine(HTTPMetadataResolverTest.buildPKIXTrustEngine(
+                ResourceHelper.of(new ClassPathResource(HTTPMetadataResolverTest.DATA_PATH + "badKey.crt")), null, false));
         resolver.setHttpClientSecurityParameters(params);
-
+        
         resolver.initialize();
         
-        CriteriaSet criteriaSet = new CriteriaSet( new EntityIdCriterion(entityID));
+        final CriteriaSet criteriaSet = new CriteriaSet( new EntityIdCriterion(entityID));
         
         EntityDescriptor ed = resolver.resolveSingle(criteriaSet);
         Assert.assertNull(ed);
@@ -555,11 +571,11 @@ public class FunctionDrivenDynamicHTTPMetadataResolverTest extends XMLObjectBase
     
     @Test
     public void testHTTPSTrustEngineValidPKIXInvalidName() throws Exception  {
-        String template = RepositorySupport.buildHTTPSResourceURL("java-opensaml", "opensaml-saml-impl/src/test/resources/org/opensaml/saml/metadata/resolver/impl/${entityID}.xml");
-        String entityID = "https://www.example.org/sp";
+        final String template = "https://localhost:8443/entities/${entityID}.xml";
+        final String entityID = "https://localhost:8443/sp";
         
         // Digesting the entityID is a little artificial for the test, but means we can test more easily against a path in the repo.
-        TemplateRequestURLBuilder requestURLBuilder = new TemplateRequestURLBuilder(
+        final TemplateRequestURLBuilder requestURLBuilder = new TemplateRequestURLBuilder(
                 VelocityEngine.newVelocityEngine(), 
                 template, 
                 EncodingStyle.path, 
@@ -573,24 +589,24 @@ public class FunctionDrivenDynamicHTTPMetadataResolverTest extends XMLObjectBase
         resolver.setRequestURLBuilder(requestURLBuilder);
 
         final HttpClientSecurityParameters params = new HttpClientSecurityParameters();
-        params.setTLSTrustEngine(HTTPMetadataResolverTest.buildPKIXTrustEngine("repo-rootCA.crt", "foobar.shibboleth.net", true));
+        params.setTLSTrustEngine(HTTPMetadataResolverTest.buildPKIXTrustEngine(EmbeddedJetty.getServerCertficateResource(), "localhostbad", true));
         resolver.setHttpClientSecurityParameters(params);
 
         resolver.initialize();
         
-        CriteriaSet criteriaSet = new CriteriaSet( new EntityIdCriterion(entityID));
+        final CriteriaSet criteriaSet = new CriteriaSet( new EntityIdCriterion(entityID));
         
-        EntityDescriptor ed = resolver.resolveSingle(criteriaSet);
+        final EntityDescriptor ed = resolver.resolveSingle(criteriaSet);
         Assert.assertNull(ed);
     }
     
     @Test
     public void testHTTPSTrustEngineWrongSocketFactory() throws Exception  {
-        String template = RepositorySupport.buildHTTPSResourceURL("java-opensaml", "opensaml-saml-impl/src/test/resources/org/opensaml/saml/metadata/resolver/impl/${entityID}.xml");
-        String entityID = "https://www.example.org/sp";
+        final String template = "https://localhost:8443/entities/${entityID}.xml";
+        final String entityID = "https://localhost:8443/sp";
         
         // Digesting the entityID is a little artificial for the test, but means we can test more easily against a path in the repo.
-        TemplateRequestURLBuilder requestURLBuilder = new TemplateRequestURLBuilder(
+        final TemplateRequestURLBuilder requestURLBuilder = new TemplateRequestURLBuilder(
                 VelocityEngine.newVelocityEngine(), 
                 template, 
                 EncodingStyle.path, 
@@ -604,14 +620,15 @@ public class FunctionDrivenDynamicHTTPMetadataResolverTest extends XMLObjectBase
         resolver.setRequestURLBuilder(requestURLBuilder);
 
         final HttpClientSecurityParameters params = new HttpClientSecurityParameters();
-        params.setTLSTrustEngine(HTTPMetadataResolverTest.buildExplicitKeyTrustEngine("repo-entity.crt"));
+        params.setTLSTrustEngine(HTTPMetadataResolverTest.buildExplicitKeyTrustEngine(EmbeddedJetty.getServerCertficateResource()));
         resolver.setHttpClientSecurityParameters(params);
 
         resolver.initialize();
         
-        CriteriaSet criteriaSet = new CriteriaSet( new EntityIdCriterion(entityID));
+        final CriteriaSet criteriaSet = new CriteriaSet( new EntityIdCriterion(entityID));
         
-        EntityDescriptor ed = resolver.resolveSingle(criteriaSet);
+        final EntityDescriptor ed = resolver.resolveSingle(criteriaSet);
         Assert.assertNull(ed);
     }
+    
 }
