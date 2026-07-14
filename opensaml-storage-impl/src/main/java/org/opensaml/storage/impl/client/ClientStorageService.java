@@ -56,6 +56,7 @@ import net.shibboleth.shared.security.DataExpiredException;
 import net.shibboleth.shared.security.DataSealer;
 import net.shibboleth.shared.security.DataSealerException;
 import net.shibboleth.shared.security.DataSealerKeyStrategy;
+import net.shibboleth.shared.security.KeyExpiredException;
 
 /**
  * Implementation of {@link org.opensaml.storage.StorageService} that stores data in-memory in a
@@ -457,8 +458,12 @@ public class ClientStorageService extends AbstractMapBackedStorageService implem
                 }
                 
                 log.debug("{} Successfully decrypted and loaded storage state from client", getLogPrefix());
+            } catch (final KeyExpiredException e) {
+                log.debug("{} Secret key used to secure data expired or missing", getLogPrefix());
+                storageObject = storeFactory.load(null, source);
+                storageObject.setDirty(true);
             } catch (final DataExpiredException e) {
-                log.debug("{} Secured data or key has expired", getLogPrefix());
+                log.debug("{} Secured data has expired", getLogPrefix());
                 storageObject = storeFactory.load(null, source);
                 storageObject.setDirty(true);
             } catch (final DataSealerException e) {
