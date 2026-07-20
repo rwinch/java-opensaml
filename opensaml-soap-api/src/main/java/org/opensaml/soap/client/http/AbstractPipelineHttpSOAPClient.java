@@ -232,11 +232,6 @@ public abstract class AbstractPipelineHttpSOAPClient
             throw new SOAPException("Client protocol problem sending SOAP request message to: " + endpoint, e);
         } catch (final IOException e) {
             throw new SOAPException("I/O problem with SOAP message exchange with: " + endpoint, e);
-        } finally {
-            if (pipeline != null) {
-                pipeline.getEncoder().destroy();
-                pipeline.getDecoder().destroy();
-            }
         }
     }
     // Checkstyle: CyclomaticComplexity|MethodLength ON
