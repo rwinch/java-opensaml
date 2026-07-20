@@ -38,6 +38,7 @@ import org.testng.annotations.Test;
 
 import net.shibboleth.shared.httpclient.HttpClientBuilder;
 import net.shibboleth.shared.logic.Constraint;
+import net.shibboleth.shared.primitive.AnnotationsSupport;
 import net.shibboleth.shared.resolver.CriteriaSet;
 import net.shibboleth.shared.resolver.Criterion;
 import net.shibboleth.shared.resolver.ResolverException;
@@ -80,9 +81,7 @@ public class AbstractDynamicHTTPMetadataResolverTest extends XMLObjectBaseTestCa
     
     @AfterMethod
     public void tearDown() {
-        if (resolver != null) {
-            resolver.destroy();
-        }
+        AnnotationsSupport.callOnTeardownAnnotations(resolver);
     }
     
     @Test

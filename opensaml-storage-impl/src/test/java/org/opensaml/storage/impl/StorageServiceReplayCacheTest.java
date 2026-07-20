@@ -19,6 +19,9 @@ import java.time.Instant;
 import org.opensaml.storage.impl.client.ClientStorageService;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.Test;
+
+import net.shibboleth.shared.primitive.AnnotationsSupport;
+
 import org.testng.annotations.BeforeMethod;
 import org.testng.Assert;
 
@@ -54,10 +57,9 @@ public class StorageServiceReplayCacheTest {
     
     @AfterMethod
     protected void tearDown() {
-        replayCache.destroy();
         replayCache = null;
         
-        storageService.destroy();
+        AnnotationsSupport.callOnTeardownAnnotations(storageService);
         storageService = null;
     }
     

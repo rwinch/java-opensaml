@@ -28,6 +28,7 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import net.shibboleth.shared.component.ComponentInitializationException;
+import net.shibboleth.shared.primitive.AnnotationsSupport;
 
 /**
  * Testing SAML message replay security policy rule.
@@ -71,10 +72,9 @@ public class MessageReplaySecurityHandlerTest extends XMLObjectBaseTestCase {
     protected void tearDown() {
         handler = null;
         
-        replayCache.destroy();
         replayCache = null;
         
-        storageService.destroy();
+        AnnotationsSupport.callOnTeardownAnnotations(storageService);
         storageService = null;
     }
     

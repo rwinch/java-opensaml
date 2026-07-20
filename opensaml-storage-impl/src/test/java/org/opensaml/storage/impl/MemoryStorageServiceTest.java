@@ -48,7 +48,6 @@ public class MemoryStorageServiceTest extends StorageServiceTest {
         MemoryStorageService ss = new MemoryStorageService();
         ss.setId("test");
         ss.initialize();
-        ss.destroy();
     }
     
 }

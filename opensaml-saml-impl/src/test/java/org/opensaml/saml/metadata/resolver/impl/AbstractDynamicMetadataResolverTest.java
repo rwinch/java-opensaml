@@ -77,6 +77,7 @@ import com.google.common.collect.Iterables;
 import net.shibboleth.shared.collection.CollectionSupport;
 import net.shibboleth.shared.component.ComponentInitializationException;
 import net.shibboleth.shared.logic.Constraint;
+import net.shibboleth.shared.primitive.AnnotationsSupport;
 import net.shibboleth.shared.resolver.CriteriaSet;
 import net.shibboleth.shared.resolver.ResolverException;
 
@@ -182,9 +183,7 @@ public class AbstractDynamicMetadataResolverTest extends XMLObjectBaseTestCase {
     
     @AfterMethod
     protected void tearDown() {
-        if (resolver != null) {
-            resolver.destroy();
-        }
+        AnnotationsSupport.callOnTeardownAnnotations(resolver);
     }
 
     

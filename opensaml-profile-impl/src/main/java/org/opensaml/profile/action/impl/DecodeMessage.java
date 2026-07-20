@@ -96,9 +96,6 @@ public class DecodeMessage extends AbstractProfileAction {
         } catch (final MessageDecodingException e) {
             log.error("{} Unable to decode incoming request", getLogPrefix(), e);
             ActionSupport.buildEvent(profileRequestContext, EventIds.UNABLE_TO_DECODE);
-        } finally {
-            // TODO: should we actually destroy the MessageDecoder here?
-            decoder.destroy();
         }
     }
     

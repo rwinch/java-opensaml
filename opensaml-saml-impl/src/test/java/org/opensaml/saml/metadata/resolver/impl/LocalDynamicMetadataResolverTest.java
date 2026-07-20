@@ -38,6 +38,7 @@ import net.shibboleth.shared.codec.StringDigester;
 import net.shibboleth.shared.codec.StringDigester.OutputFormat;
 import net.shibboleth.shared.component.ComponentInitializationException;
 import net.shibboleth.shared.logic.PredicateSupport;
+import net.shibboleth.shared.primitive.AnnotationsSupport;
 import net.shibboleth.shared.resolver.CriteriaSet;
 import net.shibboleth.shared.resolver.ResolverException;
 
@@ -81,9 +82,7 @@ public class LocalDynamicMetadataResolverTest extends XMLObjectBaseTestCase {
     
     @AfterMethod
     public void tearDown() {
-        if (resolver != null) {
-            resolver.destroy();
-        }
+        AnnotationsSupport.callOnTeardownAnnotations(resolver);
     }
     
     @Test
@@ -166,7 +165,7 @@ public class LocalDynamicMetadataResolverTest extends XMLObjectBaseTestCase {
 
     @Test
     public void testCtorSourceKeyGenerator() throws ComponentInitializationException, IOException, ResolverException {
-        resolver.destroy();
+        AnnotationsSupport.callOnTeardownAnnotations(resolver);
         
         resolver = new LocalDynamicMetadataResolver(null, sourceManager, new IdentityEntityIDGenerator());
         resolver.setId("abc123");

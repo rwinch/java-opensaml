@@ -26,6 +26,7 @@ import javax.annotation.Nonnull;
 import net.shibboleth.shared.collection.CollectionSupport;
 import net.shibboleth.shared.component.ComponentInitializationException;
 import net.shibboleth.shared.logic.PredicateSupport;
+import net.shibboleth.shared.primitive.AnnotationsSupport;
 import net.shibboleth.shared.resolver.ResolverException;
 
 import org.opensaml.core.testing.XMLObjectBaseTestCase;
@@ -84,7 +85,7 @@ public class AddNameIDToSubjectsTest extends XMLObjectBaseTestCase {
     
     @AfterClass
     public void classTearDown() {
-        metadataResolver.destroy();
+        AnnotationsSupport.callOnTeardownAnnotations(metadataResolver);
     }
     
     @BeforeMethod

@@ -50,6 +50,7 @@ import net.shibboleth.shared.codec.StringDigester;
 import net.shibboleth.shared.codec.StringDigester.OutputFormat;
 import net.shibboleth.shared.collection.CollectionSupport;
 import net.shibboleth.shared.httpclient.HttpClientBuilder;
+import net.shibboleth.shared.primitive.AnnotationsSupport;
 import net.shibboleth.shared.primitive.NonnullSupplier;
 import net.shibboleth.shared.resolver.CriteriaSet;
 import net.shibboleth.shared.resource.Resource;
@@ -112,9 +113,7 @@ public class FunctionDrivenDynamicHTTPMetadataResolverTest extends XMLObjectBase
     
     @AfterMethod
     public void tearDown() {
-        if (resolver != null) {
-            resolver.destroy();
-        }
+        AnnotationsSupport.callOnTeardownAnnotations(resolver);
     }
     
     

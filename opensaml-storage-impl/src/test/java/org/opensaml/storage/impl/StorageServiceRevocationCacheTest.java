@@ -27,6 +27,7 @@ import org.testng.annotations.Test;
 
 import net.shibboleth.shared.component.ComponentInitializationException;
 import net.shibboleth.shared.logic.ConstraintViolationException;
+import net.shibboleth.shared.primitive.AnnotationsSupport;
 
 import org.testng.annotations.BeforeMethod;
 
@@ -57,8 +58,7 @@ public class StorageServiceRevocationCacheTest {
     
     @AfterMethod
     protected void tearDown() {
-        revocationCache.destroy();
-        storageService.destroy();
+        AnnotationsSupport.callOnTeardownAnnotations(storageService);
     }
     
     @Test

@@ -18,6 +18,7 @@ import java.time.Duration;
 import java.util.Map;
 
 import net.shibboleth.shared.component.ComponentInitializationException;
+import net.shibboleth.shared.primitive.AnnotationsSupport;
 import net.shibboleth.shared.primitive.StringSupport;
 
 import org.opensaml.saml.common.assertion.AssertionValidationException;
@@ -67,8 +68,8 @@ public class OneTimeUseConditionValidatorTest extends BaseAssertionValidationTes
     
     @AfterMethod
     public void tearDown() {
-        replayCache.destroy();
-        storageService.destroy();
+        AnnotationsSupport.callOnTeardownAnnotations(replayCache);
+        AnnotationsSupport.callOnTeardownAnnotations(storageService);
     }
     
     @Test

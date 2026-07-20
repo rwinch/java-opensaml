@@ -15,6 +15,7 @@
 package org.opensaml.saml.common.profile.logic.tests;
 
 import net.shibboleth.shared.collection.CollectionSupport;
+import net.shibboleth.shared.primitive.AnnotationsSupport;
 import net.shibboleth.shared.resolver.CriteriaSet;
 import net.shibboleth.shared.spring.resource.ResourceHelper;
 
@@ -61,8 +62,7 @@ public class EntityGroupNamePredicateTest extends XMLObjectBaseTestCase {
     
     @AfterClass
     protected void tearDown() {
-        metadataProvider.destroy();
-        filter.destroy();
+        AnnotationsSupport.callOnTeardownAnnotations(metadataProvider);
     }
 
     @Test
