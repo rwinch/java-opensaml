@@ -29,7 +29,10 @@ import net.shibboleth.shared.resolver.Criterion;
  * 
  * Note that the peer entity ID may be either local or remote,
  * depending on whether the associated primary entity ID is remote or local.
+ * 
+ * @deprecated
  */
+@Deprecated(since="5.3.0", forRemoval=true)
 public final class PeerEntityIDCriterion implements Criterion {
     
     /** Peer entity ID criteria. */
