@@ -23,10 +23,13 @@ import javax.annotation.Nullable;
 
 import org.opensaml.security.x509.impl.BasicPKIXValidationInformation;
 
+import net.shibboleth.shared.primitive.AnnotationsSupport;
 import net.shibboleth.shared.spring.factory.AbstractComponentAwareFactoryBean;
 
 /**
  * A factory bean to collect information to do with a {@link BasicPKIXValidationInformation}.
+ *
+ * TODO: Remove the {@link #destroyInstance()} from this class in V6.
  */
 public abstract class AbstractBasicPKIXValidationInfoFactoryBean extends
         AbstractComponentAwareFactoryBean<BasicPKIXValidationInformation> {
@@ -83,6 +86,16 @@ public abstract class AbstractBasicPKIXValidationInfoFactoryBean extends
     @Override
     @Nonnull protected BasicPKIXValidationInformation doCreateInstance() throws Exception {
         return new BasicPKIXValidationInformation(getCertificates(), getCRLs(), verifyDepth);
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Call a destroy method if aposite.</p>
+     * <p> We do not call the parent tear down so as to avoid any deprecation logging</>
+     */
+    @Override protected void destroyInstance(@Nullable final BasicPKIXValidationInformation instance) throws Exception {
+        AnnotationsSupport.callOnTeardownAnnotations(instance);
     }
 
     /**

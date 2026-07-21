@@ -39,13 +39,16 @@ import org.slf4j.Logger;
 import org.springframework.beans.FatalBeanException;
 
 import net.shibboleth.shared.collection.CollectionSupport;
+import net.shibboleth.shared.primitive.AnnotationsSupport;
 import net.shibboleth.shared.primitive.LoggerFactory;
 import net.shibboleth.shared.resource.Resource;
 import net.shibboleth.shared.spring.factory.AbstractComponentAwareFactoryBean;
 
 /**
  * Factory bean for simple use cases involving the {@link ExplicitKeyTrustEngine} and static credentials.
- * 
+ *
+ * TODO: Remove the {@link #destroyInstance()} from this class in V6.
+ *
  * @since 3.3.0
  */
 public class StaticExplicitKeyFactoryBean extends AbstractComponentAwareFactoryBean<ExplicitKeyTrustEngine> {
@@ -133,5 +136,14 @@ public class StaticExplicitKeyFactoryBean extends AbstractComponentAwareFactoryB
     @Nonnull protected ExplicitKeyTrustEngine doCreateInstance() throws Exception {
         return new ExplicitKeyTrustEngine(new StaticCredentialResolver(getCredentials()));
     }
-    
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Call a destroy method if aposite.</p>
+     * <p> We do not call the parent tear down so as to avoid any deprecation logging</>
+     */
+    @Override protected void destroyInstance(@Nullable final ExplicitKeyTrustEngine instance) throws Exception {
+        AnnotationsSupport.callOnTeardownAnnotations(instance);
+    }
 }

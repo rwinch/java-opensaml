@@ -45,6 +45,7 @@ import org.springframework.beans.FatalBeanException;
 import net.shibboleth.shared.annotation.constraint.NotLive;
 import net.shibboleth.shared.annotation.constraint.Unmodifiable;
 import net.shibboleth.shared.collection.CollectionSupport;
+import net.shibboleth.shared.primitive.AnnotationsSupport;
 import net.shibboleth.shared.primitive.LoggerFactory;
 import net.shibboleth.shared.primitive.StringSupport;
 import net.shibboleth.shared.resource.Resource;
@@ -52,7 +53,9 @@ import net.shibboleth.shared.spring.factory.AbstractComponentAwareFactoryBean;
 
 /**
  * File system specific bean for PKIXX509CredentialTrustEngine.
- * 
+ *
+ * TODO: Remove the {@link #destroyInstance()} from this class in V6.
+ *
  * @since 3.3.0
  */
 public class StaticPKIXFactoryBean extends AbstractComponentAwareFactoryBean<PKIXX509CredentialTrustEngine> {
@@ -276,4 +279,13 @@ public class StaticPKIXFactoryBean extends AbstractComponentAwareFactoryBean<PKI
         }
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Call a destroy method if aposite.</p>
+     * <p> We do not call the parent tear down so as to avoid any deprecation logging</>
+     */
+    @Override protected void destroyInstance(@Nullable final PKIXX509CredentialTrustEngine instance) throws Exception {
+        AnnotationsSupport.callOnTeardownAnnotations(instance);
+    }
 }

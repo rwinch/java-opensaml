@@ -20,16 +20,19 @@ import java.util.List;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import net.shibboleth.shared.collection.CollectionSupport;
-import net.shibboleth.shared.spring.factory.AbstractComponentAwareFactoryBean;
-
 import org.opensaml.security.trust.TrustEngine;
 import org.opensaml.security.trust.impl.ChainingTrustEngine;
+
+import net.shibboleth.shared.collection.CollectionSupport;
+import net.shibboleth.shared.primitive.AnnotationsSupport;
+import net.shibboleth.shared.spring.factory.AbstractComponentAwareFactoryBean;
 
 /**
  * Factory bean for {@link ChainingTrustEngine}. This finesses the issue that some parsers are not supported
  * and return a bean of type object and these cannot be injected into the trust engine. This factory just filters the
  * unsupported engines out. A warning has been issued at point of parse so no further logging is required.
+ *
+ * TODO: Remove the {@link #destroyInstance()} from this class in V6.
  */
 public class ChainingTrustEngineFactoryBean extends
         AbstractComponentAwareFactoryBean<ChainingTrustEngine<?>> {
@@ -72,4 +75,12 @@ public class ChainingTrustEngineFactoryBean extends
         return new ChainingTrustEngine(list);
     }
 
+    /**
+     * {@inheritDoc}
+     * <p> We do not call the parent tear down so as to avoid any deprecation logging.
+     * </>
+     */
+    @Override protected void destroyInstance(@Nullable final ChainingTrustEngine<?> instance) throws Exception {
+        AnnotationsSupport.callOnTeardownAnnotations(instance);
+    }
 }

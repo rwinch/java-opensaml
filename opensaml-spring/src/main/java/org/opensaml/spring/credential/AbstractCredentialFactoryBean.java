@@ -20,12 +20,15 @@ import javax.annotation.Nullable;
 
 import org.opensaml.security.credential.Credential;
 
+import net.shibboleth.shared.primitive.AnnotationsSupport;
 import net.shibboleth.shared.spring.factory.AbstractComponentAwareFactoryBean;
 
 /**
  * A factory bean to accumulate the information pertaining to an
  * {@link org.opensaml.security.credential.AbstractCredential}.
  * @param <T> the type of credential to create.
+ *
+ * TODO: Remove the {@link #destroyInstance()} from this class in V6.
  */
 public abstract class AbstractCredentialFactoryBean<T extends Credential> extends AbstractComponentAwareFactoryBean<T> {
 
@@ -136,5 +139,15 @@ public abstract class AbstractCredentialFactoryBean<T extends Credential> extend
      */
     public void setConfigDescription(@Nullable final String desc) {
         configDescription = desc;
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Call a destroy method if aposite.</p>
+     * <p> We do not call the parent tear down so as to avoid any deprecation logging</>
+     */
+    @Override protected void destroyInstance(@Nullable final T instance) throws Exception {
+        AnnotationsSupport.callOnTeardownAnnotations(instance);
     }
 }
