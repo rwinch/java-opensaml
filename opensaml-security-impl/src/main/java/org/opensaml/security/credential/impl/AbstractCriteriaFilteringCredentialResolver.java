@@ -28,6 +28,7 @@ import net.shibboleth.shared.resolver.Criterion;
 import net.shibboleth.shared.resolver.ResolverException;
 
 import org.opensaml.security.SecurityException;
+import org.opensaml.security.credential.AbstractCredentialResolver;
 import org.opensaml.security.credential.Credential;
 import org.opensaml.security.credential.criteria.impl.EvaluableCredentialCriteriaRegistry;
 import org.opensaml.security.credential.criteria.impl.EvaluableCredentialCriterion;

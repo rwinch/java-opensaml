@@ -12,19 +12,18 @@
  * limitations under the License.
  */
 
-package org.opensaml.security.credential.impl;
+package org.opensaml.security.credential;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-
-import org.opensaml.security.credential.Credential;
-import org.opensaml.security.credential.CredentialResolver;
 
 import net.shibboleth.shared.resolver.CriteriaSet;
 import net.shibboleth.shared.resolver.ResolverException;
 
 /**
  * Abstract base class for {@link CredentialResolver} implementations.
+ * 
+ * @since 5.3.0
  */
 public abstract class AbstractCredentialResolver implements CredentialResolver {
 
