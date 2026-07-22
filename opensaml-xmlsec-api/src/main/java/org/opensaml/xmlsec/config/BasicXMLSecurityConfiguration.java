@@ -56,9 +56,19 @@ public class BasicXMLSecurityConfiguration extends BasicSecurityConfiguration im
     /**
      * Constructor.
      * 
+     * @param generator the identifier generator, must not be null
+     */
+    public BasicXMLSecurityConfiguration(@Nonnull final IdentifierGenerationStrategy generator) {
+        super(generator);
+    }
+    
+    /**
+     * Constructor.
+     * 
      * @param skew the clock skew, must be greater than 0
      * @param generator the identifier generator, must not be null
      */
+    @Deprecated(since="5.3.0", forRemoval=true)
     public BasicXMLSecurityConfiguration(@Nonnull final Duration skew,
             @Nonnull final IdentifierGenerationStrategy generator) {
         super(skew, generator);

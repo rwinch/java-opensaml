@@ -21,6 +21,8 @@ import javax.annotation.Nullable;
 
 import net.shibboleth.shared.component.IdentifiableComponent;
 import net.shibboleth.shared.logic.Constraint;
+import net.shibboleth.shared.primitive.DeprecationSupport;
+import net.shibboleth.shared.primitive.DeprecationSupport.ObjectType;
 import net.shibboleth.shared.security.IdentifierGenerationStrategy;
 import net.shibboleth.shared.security.IdentifierGenerationStrategy.ProviderType;
 
@@ -55,16 +57,27 @@ public class BasicSecurityConfiguration implements SecurityConfiguration, Identi
      * Initializes the clock skew to 5 minutes and the identifier generator to {@link ProviderType#SECURE}.
      */
     public BasicSecurityConfiguration() {
-        clockSkew = Duration.ofMinutes(5);
-        idGenerator = IdentifierGenerationStrategy.getInstance(ProviderType.SECURE);
+        this(Duration.ofMinutes(5), IdentifierGenerationStrategy.getInstance(ProviderType.SECURE));
     }
 
     /**
      * Constructor.
      * 
-     * @param skew the clock skew, must be greater than 0
      * @param generator the identifier generator, must not be null
      */
+    public BasicSecurityConfiguration(@Nonnull final IdentifierGenerationStrategy generator) {
+        this(Duration.ofMinutes(5), generator);
+    }
+    
+    /**
+     * Constructor.
+     * 
+     * @param skew the clock skew, must be greater than 0
+     * @param generator the identifier generator, must not be null
+     * 
+     * @deprecated
+     */
+    @Deprecated(since="5.3.0", forRemoval=true)
     public BasicSecurityConfiguration(@Nonnull final Duration skew,
             @Nonnull final IdentifierGenerationStrategy generator) {
         Constraint.isNotNull(skew, "Clock skew cannot be null");
@@ -85,7 +98,9 @@ public class BasicSecurityConfiguration implements SecurityConfiguration, Identi
     }
     
     /** {@inheritDoc} */
+    @Deprecated(since="5.3.0", forRemoval=true)
     @Nonnull public Duration getClockSkew() {
+        DeprecationSupport.warn(ObjectType.METHOD, "getClockSkew", "SecurityConfiguration", null);
         return clockSkew;
     }
 

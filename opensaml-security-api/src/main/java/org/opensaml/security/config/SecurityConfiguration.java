@@ -35,7 +35,10 @@ public interface SecurityConfiguration {
      * Get the acceptable clock skew.
      * 
      * @return acceptable clock skew
+     * 
+     * @deprecated
      */
+    @Deprecated(since="5.3.0", forRemoval=true)
     @Nonnull Duration getClockSkew();
 
     /**
