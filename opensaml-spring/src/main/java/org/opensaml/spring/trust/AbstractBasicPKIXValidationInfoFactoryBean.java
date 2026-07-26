@@ -29,7 +29,7 @@ import net.shibboleth.shared.spring.factory.AbstractComponentAwareFactoryBean;
 /**
  * A factory bean to collect information to do with a {@link BasicPKIXValidationInformation}.
  *
- * TODO: Remove the {@link #destroyInstance()} from this class in V6.
+ * TODO: Remove the {@link #destroyInstance(BasicPKIXValidationInformation)} from this class in V6.
  */
 public abstract class AbstractBasicPKIXValidationInfoFactoryBean extends
         AbstractComponentAwareFactoryBean<BasicPKIXValidationInformation> {
@@ -92,7 +92,7 @@ public abstract class AbstractBasicPKIXValidationInfoFactoryBean extends
      * {@inheritDoc}
      *
      * <p>Call a destroy method if aposite.</p>
-     * <p> We do not call the parent tear down so as to avoid any deprecation logging</>
+     * <p> We do not call the parent tear down so as to avoid any deprecation logging</p>
      */
     @Override protected void destroyInstance(@Nullable final BasicPKIXValidationInformation instance) throws Exception {
         AnnotationsSupport.callOnTeardownAnnotations(instance);

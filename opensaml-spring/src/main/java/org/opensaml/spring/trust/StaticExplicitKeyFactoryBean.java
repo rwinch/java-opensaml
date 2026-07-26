@@ -47,7 +47,7 @@ import net.shibboleth.shared.spring.factory.AbstractComponentAwareFactoryBean;
 /**
  * Factory bean for simple use cases involving the {@link ExplicitKeyTrustEngine} and static credentials.
  *
- * TODO: Remove the {@link #destroyInstance()} from this class in V6.
+ * TODO: Remove the {@link #destroyInstance(ExplicitKeyTrustEngine)} from this class in V6.
  *
  * @since 3.3.0
  */
@@ -141,7 +141,7 @@ public class StaticExplicitKeyFactoryBean extends AbstractComponentAwareFactoryB
      * {@inheritDoc}
      *
      * <p>Call a destroy method if aposite.</p>
-     * <p> We do not call the parent tear down so as to avoid any deprecation logging</>
+     * <p> We do not call the parent tear down so as to avoid any deprecation logging</p>
      */
     @Override protected void destroyInstance(@Nullable final ExplicitKeyTrustEngine instance) throws Exception {
         AnnotationsSupport.callOnTeardownAnnotations(instance);

@@ -28,7 +28,7 @@ import net.shibboleth.shared.spring.factory.AbstractComponentAwareFactoryBean;
  * {@link org.opensaml.security.credential.AbstractCredential}.
  * @param <T> the type of credential to create.
  *
- * TODO: Remove the {@link #destroyInstance()} from this class in V6.
+ * TODO: Remove the {@link #destroyInstance(Credential)} from this class in V6.
  */
 public abstract class AbstractCredentialFactoryBean<T extends Credential> extends AbstractComponentAwareFactoryBean<T> {
 
@@ -145,7 +145,7 @@ public abstract class AbstractCredentialFactoryBean<T extends Credential> extend
      * {@inheritDoc}
      *
      * <p>Call a destroy method if aposite.</p>
-     * <p> We do not call the parent tear down so as to avoid any deprecation logging</>
+     * <p> We do not call the parent tear down so as to avoid any deprecation logging</p>
      */
     @Override protected void destroyInstance(@Nullable final T instance) throws Exception {
         AnnotationsSupport.callOnTeardownAnnotations(instance);
