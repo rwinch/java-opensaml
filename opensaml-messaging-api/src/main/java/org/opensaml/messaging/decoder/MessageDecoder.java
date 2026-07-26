@@ -23,8 +23,8 @@ import net.shibboleth.shared.component.InitializableComponent;
 
 /**
  * Interface for component that decodes message data from a source into a {@link MessageContext}. Before the decoder can
- * be used the {@link #initialize()} method must be called. After the decoder has been used the {@link #destroy()}
- * method should be invoked in order to clean up any resources.
+ * be used the {@link #initialize()} method must be called. After the decoder has been used the appropriate teardown
+ * mechanism should be invoked in order to clean up any resources.
  * 
  * <p>
  * The data on which the decoder operates is supplied in an implementation-specific manner.

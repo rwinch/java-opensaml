@@ -23,8 +23,8 @@ import net.shibboleth.shared.component.InitializableComponent;
 
 /**
  * Interface for component that encodes message data from a {@link MessageContext} to a sink. Before the encoder can be
- * used the {@link #initialize()} method must be called. After the encoder has been used the {@link #destroy()} should
- * be invoked in order to clean up any resources.
+ * used the {@link #initialize()} method must be called. After the encoder has been used the appropriate tear
+ * down mechanism should be invoked in order to clean up any resources.
  * 
  * <p>
  * The sink data or structure on which the encoder operates is supplied in an implementation-specific manner.
