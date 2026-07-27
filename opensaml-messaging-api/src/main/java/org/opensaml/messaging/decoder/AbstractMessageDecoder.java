@@ -149,5 +149,12 @@ public abstract class AbstractMessageDecoder extends AbstractInitializableCompon
      */
     protected abstract void doDecode() throws MessageDecodingException;
     
+    /** {@inheritDoc} */
+    @Override
+    protected void doDestroy() {
+        //
+        // Do not call parent destroy to suppress deprecation logging
+        //
+    }
 
 }

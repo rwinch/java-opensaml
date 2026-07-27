@@ -174,4 +174,12 @@ public abstract class AbstractMessageEncoder extends AbstractInitializableCompon
      * @throws MessageEncodingException thrown if there is a problem encoding the message
      */
     protected abstract void doEncode() throws MessageEncodingException;
+    
+    /** {@inheritDoc} */
+    @Override
+    protected void doDestroy() {
+        //
+        // Do not call parent destroy to suppress deprecation logging
+        //
+    }
 }
