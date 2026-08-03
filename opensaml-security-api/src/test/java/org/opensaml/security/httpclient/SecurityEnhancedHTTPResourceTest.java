@@ -15,8 +15,6 @@
 package org.opensaml.security.httpclient;
 
 import java.io.IOException;
-import java.net.SocketException;
-import java.net.UnknownHostException;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLSession;
@@ -53,7 +51,7 @@ public class SecurityEnhancedHTTPResourceTest {
     private HttpClientSecurityContextHandler handler;
 
     @BeforeClass
-    public void startJetty() throws UnknownHostException, SocketException {
+    public void startJetty() throws IOException {
         jetty = new EmbeddedJetty();
         jetty.startServer(new EmbeddedJetty.ResourceHandler(200,
                 ResourceHelper.of(new ClassPathResource(DATA_PATH))));
