@@ -14,6 +14,7 @@
 
 package org.opensaml.storage.impl.memcached;
 
+import net.shibboleth.shared.annotation.OnTeardown;
 import net.shibboleth.shared.annotation.constraint.NotEmpty;
 import net.shibboleth.shared.annotation.constraint.Positive;
 import net.shibboleth.shared.collection.Pair;
@@ -569,9 +570,9 @@ public class MemcachedStorageService extends AbstractIdentifiableInitializableCo
         handleAsyncResult(nsResult);
     }
 
-    /** {@inheritDoc} */
-    @Override
-    protected void doDestroy() {
+    /** Teardown entry point. */
+    @OnTeardown
+    public final void teardownMemcachedStorageService() {
         memcacheClient.shutdown();
     }
 
