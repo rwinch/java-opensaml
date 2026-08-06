@@ -195,13 +195,16 @@ public abstract class BaseSignatureTrustEngine<TrustBasisType> implements Signat
             try {
                 for (final Credential kiCred : getKeyInfoResolver().resolve(keyInfoCriteriaSet)) {
                     assert kiCred != null;
-                    if (verifySignature(signature, kiCred)) {
-                        log.debug("Successfully verified signature using KeyInfo-derived credential");
-                        log.debug("Attempting to establish trust of KeyInfo-derived credential");
-                        if (evaluateTrust(kiCred, trustBasis)) {
-                            log.debug("Successfully established trust of KeyInfo-derived credential");
+                    if (evaluateTrust(kiCred, trustBasis)) {
+                        log.debug("Successfully established trust of KeyInfo-derived credential");
+                        log.debug("Attempting to verify signature using trusted KeyInfo-derived credential");
+                        if (verifySignature(signature, kiCred)) {
+                            log.debug("Successfully verified signature using trusted KeyInfo-derived credential");
                             return true;
+                        } else {
+                            log.debug("Signature verification failed using trusted KeyInfo-derived credential");
                         }
+                    } else {
                         log.debug("Failed to establish trust of KeyInfo-derived credential");
                     }
                 }
