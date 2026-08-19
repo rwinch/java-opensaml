@@ -38,7 +38,6 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import net.shibboleth.shared.component.ComponentInitializationException;
-import net.shibboleth.shared.component.DestructableComponent;
 import net.shibboleth.shared.component.InitializableComponent;
 import net.shibboleth.shared.primitive.AnnotationsSupport;
 
