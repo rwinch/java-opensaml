@@ -51,6 +51,7 @@ import com.fasterxml.jackson.databind.ObjectWriter;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
+import net.shibboleth.shared.annotation.OnTeardown;
 import net.shibboleth.shared.annotation.ParameterName;
 import net.shibboleth.shared.annotation.constraint.NonnullAfterInit;
 import net.shibboleth.shared.annotation.constraint.NotEmpty;
@@ -171,7 +172,7 @@ public class HTTPReporter extends ScheduledReporter implements InitializableComp
      * @param client client to use
      */
     public void setHttpClient(@Nonnull final HttpClient client) {
-        doSetterPreconditions();
+        checkSetterPreconditions();
         httpClient = Constraint.isNotNull(client, "HttpClient cannot be null");
     }
     
@@ -181,7 +182,7 @@ public class HTTPReporter extends ScheduledReporter implements InitializableComp
      * @param url URL to post data to
      */
     public void setCollectorURL(@Nonnull @NotEmpty final String url) {
-        doSetterPreconditions();
+        checkSetterPreconditions();
         collectorURL = Constraint.isNotNull(StringSupport.trimOrNull(url), "Collector URL cannot be null or empty");
     }
 
@@ -191,7 +192,7 @@ public class HTTPReporter extends ScheduledReporter implements InitializableComp
      * @param params the new client security parameters
      */
     public void setHttpClientSecurityParameters(@Nullable final HttpClientSecurityParameters params) {
-        doSetterPreconditions();
+        checkSetterPreconditions();
         httpClientSecurityParameters = params;
     }
     
@@ -201,17 +202,27 @@ public class HTTPReporter extends ScheduledReporter implements InitializableComp
      * @param format formatting string
      */
     public void setDateTimeFormat(@Nullable @NotEmpty final String format) {
-        doSetterPreconditions();
+        checkSetterPreconditions();
         dateTimeFormat = StringSupport.trimOrNull(format);
     }
     
     /**
      * Helper for a setter method to check the standard preconditions.
      */
-    private final void doSetterPreconditions() {
+    private final void checkSetterPreconditions() {
+        if (isInitialized()) {
+            throw new UninitializedComponentException(
+                    "HTTPReporter has already been initialized.");
+        }
+    }
+
+    /**
+     * Helper for a method to check for component initialization.
+     */
+    private final void checkComponentActive() {
         if (!isInitialized()) {
             throw new UninitializedComponentException(
-                    "HTTPReported has not yet been initialized and cannot be used.");
+                    "HTTPReporter has not yet been initialized and cannot be used.");
         }
     }
     
@@ -239,6 +250,7 @@ public class HTTPReporter extends ScheduledReporter implements InitializableComp
     
     /** {@inheritDoc} */
     @Override
+    @OnTeardown
     public void stop() {
         super.stop();
         httpClient = null;
@@ -248,6 +260,8 @@ public class HTTPReporter extends ScheduledReporter implements InitializableComp
     /** {@inheritDoc} */
     @Override
     public void report() {
+        checkComponentActive();
+        
         synchronized (this) {
             try {
                 final HttpPost httpRequest = new HttpPost(collectorURL);
