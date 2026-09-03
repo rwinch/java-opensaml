@@ -16,6 +16,7 @@ package org.opensaml.core.metrics.impl;
 
 import org.opensaml.core.metrics.MetricsSupport;
 import org.opensaml.core.testing.OpenSAMLInitBaseTestCase;
+import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import net.shibboleth.shared.httpclient.HttpClientBuilder;
@@ -30,10 +31,18 @@ public class HTTPReporterTest extends OpenSAMLInitBaseTestCase {
     public void test() throws Exception {
      
         final HTTPReporter reporter = new HTTPReporter(MetricsSupport.getMetricRegistry(), "test", null);
+        
+        Assert.assertFalse(reporter.isInitialized());
+        
         reporter.setCollectorURL("https://localhost/reporter");
         reporter.setHttpClient(new HttpClientBuilder().buildClient());
         reporter.initialize();
         
+        Assert.assertTrue(reporter.isInitialized());
+        Assert.assertFalse(reporter.isShutdown());
+        
+        reporter.stop();
+        Assert.assertTrue(reporter.isShutdown());
         reporter.stop();
     }
     

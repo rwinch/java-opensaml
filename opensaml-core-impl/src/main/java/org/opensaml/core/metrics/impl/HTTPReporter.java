@@ -103,6 +103,9 @@ public class HTTPReporter extends ScheduledReporter implements InitializableComp
     /** Whether this component has been initialized. */
     private boolean isInitialized;
 
+    /** Whether this component has been shut down. */
+    private boolean isShutdown;
+    
     /**
      * Constructor.
      *
@@ -231,6 +234,17 @@ public class HTTPReporter extends ScheduledReporter implements InitializableComp
         return isInitialized;
     }
 
+    /**
+     * Returns true iff the {@link #stop()} method has been called.
+     * 
+     * @return shutdown status
+     * 
+     * @since 5.3.0
+     */
+    public boolean isShutdown() {
+        return isShutdown;
+    }
+    
     /** {@inheritDoc} */
     public void initialize() throws ComponentInitializationException {
         if (!isInitialized) {
@@ -252,9 +266,12 @@ public class HTTPReporter extends ScheduledReporter implements InitializableComp
     @Override
     @OnTeardown
     public void stop() {
-        super.stop();
-        httpClient = null;
-        httpClientSecurityParameters = null;
+        if (!isShutdown()) {
+            super.stop();
+            httpClient = null;
+            httpClientSecurityParameters = null;
+            isShutdown = true;
+        }
     }
         
     /** {@inheritDoc} */
