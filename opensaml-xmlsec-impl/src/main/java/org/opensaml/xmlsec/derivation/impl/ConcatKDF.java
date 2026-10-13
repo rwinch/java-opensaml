@@ -14,13 +14,13 @@
 
 package org.opensaml.xmlsec.derivation.impl;
 
+import java.util.HexFormat;
+
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
-import org.apache.commons.codec.DecoderException;
-import org.apache.commons.codec.binary.Hex;
 import org.bouncycastle.crypto.Digest;
 import org.bouncycastle.crypto.agreement.kdf.ConcatenationKDFGenerator;
 import org.bouncycastle.crypto.digests.RIPEMD160Digest;
@@ -378,8 +378,8 @@ public class ConcatKDF extends AbstractInitializableComponent
         
         byte[] decoded = null;
         try {
-            decoded = Hex.decodeHex(trimmed);
-        } catch (final DecoderException e) {
+            decoded = HexFormat.of().parseHex(trimmed);
+        } catch (final IllegalArgumentException e) {
             throw new KeyDerivationException("ConcatKDF parameter was not valid hex-encoded value: " + name, e);
         }
         assert decoded!=null;

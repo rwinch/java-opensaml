@@ -20,6 +20,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
@@ -28,8 +29,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.xml.namespace.QName;
 
-import org.apache.commons.codec.DecoderException;
-import org.apache.commons.codec.binary.Hex;
 import org.opensaml.core.xml.XMLObject;
 import org.opensaml.saml.common.binding.artifact.SAMLArtifact;
 import org.opensaml.saml.common.binding.artifact.SAMLSourceIDArtifact;
@@ -211,14 +210,14 @@ public class SAMLArtifactMetadataIndex implements MetadataIndex {
                             final String extSourceIDHex = StringSupport.trimOrNull(extSourceID.getValue());
                             if (extSourceIDHex != null) {
                                 try {
-                                    final byte[] sourceID = Hex.decodeHex(extSourceIDHex.toCharArray());
+                                    final byte[] sourceID = HexFormat.of().parseHex(extSourceIDHex);
                                     assert sourceID != null;
                                     final ArtifactSourceIDMetadataIndexKey key = 
                                             new ArtifactSourceIDMetadataIndexKey(sourceID);
                                     log.trace("For SourceID extension value '{}' produced index key: {}", 
                                             extSourceIDHex, key);
                                     results.add(key);
-                                } catch (final DecoderException e) {
+                                } catch (final IllegalArgumentException e) {
                                     log.warn("Error decoding hexidecimal SourceID extension value '{}' for indexing", 
                                             extSourceIDHex, e);
                                 }
@@ -311,7 +310,7 @@ public class SAMLArtifactMetadataIndex implements MetadataIndex {
         @Override
         public String toString() {
             return MoreObjects.toStringHelper(this)
-                    .add("sourceID", new String(Hex.encodeHex(sourceID, true)))
+                    .add("sourceID", HexFormat.of().formatHex(sourceID))
                     .toString();
         }
 

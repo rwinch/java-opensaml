@@ -15,6 +15,7 @@
 package org.opensaml.saml.common.binding.artifact;
 
 import java.util.Arrays;
+import java.util.HexFormat;
 
 import javax.annotation.Nonnull;
 
@@ -24,7 +25,6 @@ import net.shibboleth.shared.codec.EncodingException;
 import net.shibboleth.shared.logic.Constraint;
 import net.shibboleth.shared.primitive.LoggerFactory;
 
-import org.apache.commons.codec.binary.Hex;
 import org.slf4j.Logger;
 
 /**
@@ -100,7 +100,7 @@ public abstract class AbstractSAMLArtifact implements SAMLArtifact {
      * @return hex encoded artifact
      */
     @Nonnull @NotEmpty public String hexEncode() {
-        return Hex.encodeHexString(getArtifactBytes());
+        return HexFormat.of().formatHex(getArtifactBytes());
     }
 
     /** {@inheritDoc} */

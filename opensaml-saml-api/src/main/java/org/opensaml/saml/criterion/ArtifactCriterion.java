@@ -14,11 +14,11 @@
 
 package org.opensaml.saml.criterion;
 
+import java.util.HexFormat;
 import java.util.Objects;
 
 import javax.annotation.Nonnull;
 
-import org.apache.commons.codec.binary.Hex;
 import org.opensaml.saml.common.binding.artifact.SAMLArtifact;
 
 import net.shibboleth.shared.logic.Constraint;
@@ -53,7 +53,7 @@ public final class ArtifactCriterion implements Criterion {
     public String toString() {
         final StringBuilder builder = new StringBuilder();
         builder.append("ArtifactCriterion [artifact=");
-        builder.append(Hex.encodeHex(artifact.getArtifactBytes(), true));
+        builder.append(HexFormat.of().formatHex(artifact.getArtifactBytes()));
         builder.append("]");
         return builder.toString();
     }

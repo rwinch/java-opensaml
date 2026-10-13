@@ -15,10 +15,10 @@
 package org.opensaml.core.xml.util;
 
 import java.util.Arrays;
+import java.util.HexFormat;
 
 import javax.annotation.Nonnull;
 
-import org.apache.commons.codec.binary.Hex;
 import org.opensaml.core.xml.AbstractXMLObject;
 import org.opensaml.core.xml.XMLObject;
 
@@ -75,7 +75,7 @@ public class XMLObjectSource {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("source", new String(Hex.encodeHex(source, true)))
+                .add("source", HexFormat.of().formatHex(source))
                 .toString();
     }
 

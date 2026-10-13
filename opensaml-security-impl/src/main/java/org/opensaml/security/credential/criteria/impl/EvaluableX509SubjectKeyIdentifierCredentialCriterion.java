@@ -16,6 +16,7 @@ package org.opensaml.security.credential.criteria.impl;
 
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
+import java.util.HexFormat;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -24,7 +25,6 @@ import net.shibboleth.shared.logic.AbstractTriStatePredicate;
 import net.shibboleth.shared.logic.Constraint;
 import net.shibboleth.shared.primitive.LoggerFactory;
 
-import org.apache.commons.codec.binary.Hex;
 import org.opensaml.security.credential.Credential;
 import org.opensaml.security.x509.X509Credential;
 import org.opensaml.security.x509.X509SubjectKeyIdentifierCriterion;
@@ -89,7 +89,7 @@ public class EvaluableX509SubjectKeyIdentifierCredentialCriterion extends Abstra
     public String toString() {
         final StringBuilder builder = new StringBuilder();
         builder.append("EvaluableX509SubjectKeyIdentifierCredentialCriterion [ski=");
-        builder.append(Hex.encodeHexString(ski));
+        builder.append(HexFormat.of().formatHex(ski));
         builder.append("]");
         return builder.toString();
     }

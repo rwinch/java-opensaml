@@ -17,13 +17,13 @@ package org.opensaml.xmlsec.derivation.impl;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
+import java.util.HexFormat;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
-import org.apache.commons.codec.binary.Hex;
 import org.opensaml.xmlsec.algorithm.AlgorithmSupport;
 import org.opensaml.xmlsec.derivation.KeyDerivationException;
 import org.opensaml.xmlsec.derivation.KeyDerivationSupport;
@@ -181,12 +181,14 @@ public class DHLegacyKDF {
                 nonceBytes,
                 keyLength.toString().getBytes(Charsets.UTF_8));
         
-        log.trace("Digest input for counter={} in hex was: {}", counter, Hex.encodeHexString(digestInput, false));
+        log.trace("Digest input for counter={} in hex was: {}", counter,
+                HexFormat.of().withUpperCase().formatHex(digestInput));
         
         try {
             final MessageDigest md = MessageDigest.getInstance(digestAlgorithm);
             final byte[] output = md.digest(digestInput);
-            log.trace("Digest output for counter={} in hex was: {}", counter, Hex.encodeHexString(output, false));
+            log.trace("Digest output for counter={} in hex was: {}", counter,
+                    HexFormat.of().withUpperCase().formatHex(output));
             return output;
         } catch (final NoSuchAlgorithmException e) {
             throw new KeyDerivationException("Fatal error computing digest for key derivation", e);

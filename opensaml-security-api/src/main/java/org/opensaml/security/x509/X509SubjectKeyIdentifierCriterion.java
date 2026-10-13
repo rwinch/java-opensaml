@@ -14,9 +14,9 @@
 
 package org.opensaml.security.x509;
 
-import javax.annotation.Nonnull;
+import java.util.HexFormat;
 
-import org.apache.commons.codec.binary.Hex;
+import javax.annotation.Nonnull;
 
 import net.shibboleth.shared.resolver.Criterion;
 
@@ -66,7 +66,7 @@ public final class X509SubjectKeyIdentifierCriterion implements Criterion {
     public String toString() {
         final StringBuilder builder = new StringBuilder();
         builder.append("X509SubjectKeyIdentifierCriterion [subjectKeyIdentifier=");
-        builder.append(Hex.encodeHexString(subjectKeyIdentifier));
+        builder.append(HexFormat.of().formatHex(subjectKeyIdentifier));
         builder.append("]");
         return builder.toString();
     }

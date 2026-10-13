@@ -15,13 +15,12 @@
 package org.opensaml.xmlsec.encryption.impl;
 
 import java.util.ArrayList;
+import java.util.HexFormat;
 import java.util.List;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import org.apache.commons.codec.DecoderException;
-import org.apache.commons.codec.binary.Hex;
 import org.opensaml.core.xml.AbstractXMLObject;
 import org.opensaml.core.xml.XMLObject;
 import org.opensaml.core.xml.XMLRuntimeException;
@@ -88,15 +87,15 @@ public class ConcatKDFParamsImpl extends AbstractXMLObject implements ConcatKDFP
     /** {@inheritDoc} */
     @Nullable public byte[] getAlgorithmIDBytes() {
         try {
-            return algorithmID == null ? null : Hex.decodeHex(algorithmID);
-        } catch (final DecoderException e) {
+            return algorithmID == null ? null : HexFormat.of().parseHex(algorithmID);
+        } catch (final IllegalArgumentException e) {
             throw new XMLRuntimeException(e);
         }
     }
 
     /** {@inheritDoc} */
     public void setAlgorithmIDBytes(@Nullable final byte[] newAlgorithmID) {
-        setAlgorithmID(newAlgorithmID == null ? null : Hex.encodeHexString(newAlgorithmID, false));
+        setAlgorithmID(newAlgorithmID == null ? null : HexFormat.of().withUpperCase().formatHex(newAlgorithmID));
     }
 
     /** {@inheritDoc} */
@@ -112,15 +111,15 @@ public class ConcatKDFParamsImpl extends AbstractXMLObject implements ConcatKDFP
     /** {@inheritDoc} */
     @Nullable public byte[] getPartyUInfoBytes() {
         try {
-            return partyUInfo == null ? null : Hex.decodeHex(partyUInfo);
-        } catch (final DecoderException e) {
+            return partyUInfo == null ? null : HexFormat.of().parseHex(partyUInfo);
+        } catch (final IllegalArgumentException e) {
             throw new XMLRuntimeException(e);
         }
     }
 
     /** {@inheritDoc} */
     public void setPartyUInfoBytes(@Nullable final byte[] newPartyUInfo) {
-        setPartyUInfo(newPartyUInfo == null ? null : Hex.encodeHexString(newPartyUInfo, false));
+        setPartyUInfo(newPartyUInfo == null ? null : HexFormat.of().withUpperCase().formatHex(newPartyUInfo));
     }
 
     /** {@inheritDoc} */
@@ -136,15 +135,15 @@ public class ConcatKDFParamsImpl extends AbstractXMLObject implements ConcatKDFP
     /** {@inheritDoc} */
     @Nullable public byte[] getPartyVInfoBytes() {
         try {
-            return partyVInfo == null ? null : Hex.decodeHex(partyVInfo);
-        } catch (final DecoderException e) {
+            return partyVInfo == null ? null : HexFormat.of().parseHex(partyVInfo);
+        } catch (final IllegalArgumentException e) {
             throw new XMLRuntimeException(e);
         }
     }
 
     /** {@inheritDoc} */
     public void setPartyVInfoBytes(@Nullable final byte[] newPartyVInfo) {
-        setPartyVInfo(newPartyVInfo == null ? null : Hex.encodeHexString(newPartyVInfo, false));
+        setPartyVInfo(newPartyVInfo == null ? null : HexFormat.of().withUpperCase().formatHex(newPartyVInfo));
     }
 
     /** {@inheritDoc} */
@@ -160,15 +159,15 @@ public class ConcatKDFParamsImpl extends AbstractXMLObject implements ConcatKDFP
     /** {@inheritDoc} */
     @Nullable public byte[] getSuppPubInfoBytes() {
         try {
-            return suppPubInfo == null ? null : Hex.decodeHex(suppPubInfo);
-        } catch (final DecoderException e) {
+            return suppPubInfo == null ? null : HexFormat.of().parseHex(suppPubInfo);
+        } catch (final IllegalArgumentException e) {
             throw new XMLRuntimeException(e);
         }
     }
 
     /** {@inheritDoc} */
     public void setSuppPubInfoBytes(@Nullable final byte[] newSuppPubInfo) {
-        setSuppPubInfo(newSuppPubInfo == null ? null : Hex.encodeHexString(newSuppPubInfo, false));
+        setSuppPubInfo(newSuppPubInfo == null ? null : HexFormat.of().withUpperCase().formatHex(newSuppPubInfo));
     }
 
     /** {@inheritDoc} */
@@ -184,15 +183,15 @@ public class ConcatKDFParamsImpl extends AbstractXMLObject implements ConcatKDFP
     /** {@inheritDoc} */
     @Nullable public byte[] getSuppPrivInfoBytes() {
         try {
-            return suppPrivInfo == null ? null : Hex.decodeHex(suppPrivInfo);
-        } catch (final DecoderException e) {
+            return suppPrivInfo == null ? null : HexFormat.of().parseHex(suppPrivInfo);
+        } catch (final IllegalArgumentException e) {
             throw new XMLRuntimeException(e);
         }
     }
 
     /** {@inheritDoc} */
     public void setSuppPrivInfoBytes(@Nullable final byte[] newSuppPrivInfo) {
-        setSuppPrivInfo(newSuppPrivInfo == null ? null : Hex.encodeHexString(newSuppPrivInfo, false));
+        setSuppPrivInfo(newSuppPrivInfo == null ? null : HexFormat.of().withUpperCase().formatHex(newSuppPrivInfo));
     }
 
     /** {@inheritDoc} */

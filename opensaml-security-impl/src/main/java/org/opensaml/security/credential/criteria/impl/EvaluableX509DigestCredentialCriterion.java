@@ -20,6 +20,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
+import java.util.HexFormat;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -29,7 +30,6 @@ import net.shibboleth.shared.logic.Constraint;
 import net.shibboleth.shared.primitive.LoggerFactory;
 import net.shibboleth.shared.primitive.StringSupport;
 
-import org.apache.commons.codec.binary.Hex;
 import org.opensaml.security.credential.Credential;
 import org.opensaml.security.x509.X509Credential;
 import org.opensaml.security.x509.X509DigestCriterion;
@@ -105,7 +105,7 @@ public final class EvaluableX509DigestCredentialCriterion extends AbstractTriSta
         builder.append("EvaluableX509DigestCredentialCriterion [algorithm=");
         builder.append(algorithm);
         builder.append(", x509digest=");
-        builder.append(Hex.encodeHexString(x509digest));
+        builder.append(HexFormat.of().formatHex(x509digest));
         builder.append("]");
         return builder.toString();
     }

@@ -15,6 +15,7 @@
 package org.opensaml.security.x509;
 
 import java.util.Arrays;
+import java.util.HexFormat;
 
 import javax.annotation.Nonnull;
 
@@ -22,7 +23,6 @@ import net.shibboleth.shared.logic.Constraint;
 import net.shibboleth.shared.primitive.StringSupport;
 import net.shibboleth.shared.resolver.Criterion;
 
-import org.apache.commons.codec.binary.Hex;
 
 /**
  * An implementation of {@link Criterion} which specifies criteria based on
@@ -91,7 +91,7 @@ public final class X509DigestCriterion implements Criterion {
         builder.append("X509DigestCriterion [algorithm=");
         builder.append(algorithm);
         builder.append(", digest=");
-        builder.append(Hex.encodeHexString(x509digest));
+        builder.append(HexFormat.of().formatHex(x509digest));
         builder.append("]");
         return builder.toString();
     }

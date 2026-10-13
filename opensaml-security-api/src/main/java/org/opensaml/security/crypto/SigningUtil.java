@@ -20,11 +20,11 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.Signature;
 import java.util.Arrays;
+import java.util.HexFormat;
 
 import javax.annotation.Nonnull;
 import javax.crypto.Mac;
 
-import org.apache.commons.codec.binary.Hex;
 import org.opensaml.security.SecurityException;
 import org.opensaml.security.credential.Credential;
 import org.opensaml.security.credential.CredentialSupport;
@@ -105,7 +105,7 @@ public final class SigningUtil {
             signature.initSign(signingKey);
             signature.update(input);
             final byte[] rawSignature = signature.sign();
-            LOG.debug("Computed signature: {}", Hex.encodeHex(rawSignature));
+            LOG.debug("Computed signature: {}", HexFormat.of().formatHex(rawSignature));
             return rawSignature;
         } catch (final GeneralSecurityException e) {
             LOG.error("Error during signature generation: {}", e.getMessage());
@@ -139,7 +139,7 @@ public final class SigningUtil {
             mac.init(signingKey);
             mac.update(input);
             final byte[] rawMAC = mac.doFinal();
-            LOG.debug("Computed MAC: {}", Hex.encodeHexString(rawMAC));
+            LOG.debug("Computed MAC: {}", HexFormat.of().formatHex(rawMAC));
             return rawMAC;
         } catch (final GeneralSecurityException e) {
             LOG.error("Error during MAC generation: {}", e.getMessage());
