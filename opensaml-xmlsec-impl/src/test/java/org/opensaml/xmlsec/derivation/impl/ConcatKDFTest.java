@@ -14,10 +14,10 @@
 
 package org.opensaml.xmlsec.derivation.impl;
 
+import java.util.HexFormat;
+
 import javax.crypto.SecretKey;
 
-import org.apache.commons.codec.DecoderException;
-import org.apache.commons.codec.binary.Hex;
 import org.opensaml.core.testing.XMLObjectBaseTestCase;
 import org.opensaml.core.xml.XMLObject;
 import org.opensaml.core.xml.util.XMLObjectSupport;
@@ -384,7 +384,7 @@ public class ConcatKDFTest extends XMLObjectBaseTestCase {
         ConcatKDF kdf = new ConcatKDF();
         kdf.initialize();
         
-        byte[] secret = Hex.decodeHex("DEADBEEF");
+        byte[] secret = HexFormat.of().parseHex("DEADBEEF");
         
         SecretKey derivedKey = kdf.derive(secret, EncryptionConstants.ALGO_ID_BLOCKCIPHER_AES128_GCM, null);
         
@@ -403,7 +403,7 @@ public class ConcatKDFTest extends XMLObjectBaseTestCase {
         kdf.setSuppPrivInfo("EE");
         kdf.initialize();
         
-        byte[] secret = Hex.decodeHex("DEADBEEF");
+        byte[] secret = HexFormat.of().parseHex("DEADBEEF");
         
         SecretKey derivedKey = kdf.derive(secret, EncryptionConstants.ALGO_ID_BLOCKCIPHER_AES128_GCM, null);
         
@@ -417,7 +417,7 @@ public class ConcatKDFTest extends XMLObjectBaseTestCase {
         ConcatKDF kdf = new ConcatKDF();
         kdf.initialize();
         
-        byte[] secret = Hex.decodeHex("DEADBEEF");
+        byte[] secret = HexFormat.of().parseHex("DEADBEEF");
         
         kdf.derive(secret, "urn:test:InvalidKeyAlgorithm", null);
     }
@@ -427,7 +427,7 @@ public class ConcatKDFTest extends XMLObjectBaseTestCase {
         ConcatKDF kdf = new ConcatKDF();
         kdf.initialize();
         
-        byte[] secret = Hex.decodeHex("DEADBEEF");
+        byte[] secret = HexFormat.of().parseHex("DEADBEEF");
         
         // Just use this as a stand-in for something which is KeySpecifiedAlgorithm but not KeyLengthSpecifiedAlgorithm
         kdf.derive(secret, SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA256, null);
@@ -438,7 +438,7 @@ public class ConcatKDFTest extends XMLObjectBaseTestCase {
         ConcatKDF kdf = new ConcatKDF();
         kdf.initialize();
         
-        byte[] secret = Hex.decodeHex("DEADBEEF");
+        byte[] secret = HexFormat.of().parseHex("DEADBEEF");
         
         // Just use this as a stand-in for something which is KeySpecifiedAlgorithm but not KeyLengthSpecifiedAlgorithm
         SecretKey derivedKey = kdf.derive(secret, SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA256, 256);
@@ -537,7 +537,7 @@ public class ConcatKDFTest extends XMLObjectBaseTestCase {
     //
 
     @DataProvider(name = "testVectors")
-    public Object[][] testVectors() throws DecoderException, EncodingException {
+    public Object[][] testVectors() throws EncodingException {
         return new Object[][] {
             
             // Non-normative vectors.
@@ -547,153 +547,153 @@ public class ConcatKDFTest extends XMLObjectBaseTestCase {
             
             // SHA-1 digest
             new Object[] {
-                    Hex.decodeHex("d09a6b1a472f930db4f5e6b967900744"),
-                    Hex.decodeHex("b117255ab5f1b6b96fc434b0"),
+                    HexFormat.of().parseHex("d09a6b1a472f930db4f5e6b967900744"),
+                    HexFormat.of().parseHex("b117255ab5f1b6b96fc434b0"),
                     128,
                     SignatureConstants.ALGO_ID_DIGEST_SHA1,
-                    Hex.decodeHex("b5a3c52e97ae6e8c5069954354eab3c7")},
+                    HexFormat.of().parseHex("b5a3c52e97ae6e8c5069954354eab3c7")},
             
             new Object[] {
-                    Hex.decodeHex("343666c0dd34b756e70f759f14c304f5"),
-                    Hex.decodeHex("722b28448d7eab85491bce09"),
+                    HexFormat.of().parseHex("343666c0dd34b756e70f759f14c304f5"),
+                    HexFormat.of().parseHex("722b28448d7eab85491bce09"),
                     128,
                     SignatureConstants.ALGO_ID_DIGEST_SHA1,
-                    Hex.decodeHex("1003b650ddd3f0891a15166db5ec881d")},
+                    HexFormat.of().parseHex("1003b650ddd3f0891a15166db5ec881d")},
             
             new Object[] {
-                    Hex.decodeHex("b84acf03ab08652dd7f82fa956933261"),
-                    Hex.decodeHex("3d8773ec068c86053a918565"),
+                    HexFormat.of().parseHex("b84acf03ab08652dd7f82fa956933261"),
+                    HexFormat.of().parseHex("3d8773ec068c86053a918565"),
                     128,
                     SignatureConstants.ALGO_ID_DIGEST_SHA1,
-                    Hex.decodeHex("1635dcd1ce698f736831b4badb68ab2b")},
+                    HexFormat.of().parseHex("1635dcd1ce698f736831b4badb68ab2b")},
             
             new Object[] {
-                    Hex.decodeHex("8cc24ca3f1d1a8b34783780b79890430"),
-                    Hex.decodeHex("f08d4f2d9a8e6d7105c0bc16"),
+                    HexFormat.of().parseHex("8cc24ca3f1d1a8b34783780b79890430"),
+                    HexFormat.of().parseHex("f08d4f2d9a8e6d7105c0bc16"),
                     128,
                     SignatureConstants.ALGO_ID_DIGEST_SHA1,
-                    Hex.decodeHex("b8e716fb84a420aed4812cd76d9700ee")},
+                    HexFormat.of().parseHex("b8e716fb84a420aed4812cd76d9700ee")},
             
             new Object[] {
-                    Hex.decodeHex("ebe28edbae5a410b87a479243db3f690"),
-                    Hex.decodeHex("e60dd8b28228ce5b9be74d3b"),
+                    HexFormat.of().parseHex("ebe28edbae5a410b87a479243db3f690"),
+                    HexFormat.of().parseHex("e60dd8b28228ce5b9be74d3b"),
                     128,
                     SignatureConstants.ALGO_ID_DIGEST_SHA1,
-                    Hex.decodeHex("b4a23963e07f485382cb358a493daec1")},
+                    HexFormat.of().parseHex("b4a23963e07f485382cb358a493daec1")},
             
             new Object[] {
-                    Hex.decodeHex("ebe28edbae5a410b87a479243db3f690"),
-                    Hex.decodeHex("e60dd8b28228ce5b9be74d3b"),
+                    HexFormat.of().parseHex("ebe28edbae5a410b87a479243db3f690"),
+                    HexFormat.of().parseHex("e60dd8b28228ce5b9be74d3b"),
                     192,
                     SignatureConstants.ALGO_ID_DIGEST_SHA1,
-                    Hex.decodeHex("b4a23963e07f485382cb358a493daec1759ac7043dbeac37")},
+                    HexFormat.of().parseHex("b4a23963e07f485382cb358a493daec1759ac7043dbeac37")},
             
             new Object[] {
-                    Hex.decodeHex("ebe28edbae5a410b87a479243db3f690"),
-                    Hex.decodeHex("e60dd8b28228ce5b9be74d3b"),
+                    HexFormat.of().parseHex("ebe28edbae5a410b87a479243db3f690"),
+                    HexFormat.of().parseHex("e60dd8b28228ce5b9be74d3b"),
                     256,
                     SignatureConstants.ALGO_ID_DIGEST_SHA1,
-                    Hex.decodeHex("b4a23963e07f485382cb358a493daec1759ac7043dbeac37152c6ddf105031f0")},
+                    HexFormat.of().parseHex("b4a23963e07f485382cb358a493daec1759ac7043dbeac37152c6ddf105031f0")},
 
             // SHA-256 digest
             new Object[] {
-                    Hex.decodeHex("afc4e154498d4770aa8365f6903dc83b"),
-                    Hex.decodeHex("662af20379b29d5ef813e655"),
+                    HexFormat.of().parseHex("afc4e154498d4770aa8365f6903dc83b"),
+                    HexFormat.of().parseHex("662af20379b29d5ef813e655"),
                     128,
                     SignatureConstants.ALGO_ID_DIGEST_SHA256,
-                    Hex.decodeHex("f0b80d6ae4c1e19e2105a37024e35dc6")},
+                    HexFormat.of().parseHex("f0b80d6ae4c1e19e2105a37024e35dc6")},
             
             new Object[] {
-                    Hex.decodeHex("a3ce8d61d699ad150e196a7ab6736a63"),
-                    Hex.decodeHex("ce5cd95a44ee83a8fb83f34c"),
+                    HexFormat.of().parseHex("a3ce8d61d699ad150e196a7ab6736a63"),
+                    HexFormat.of().parseHex("ce5cd95a44ee83a8fb83f34c"),
                     128,
                     SignatureConstants.ALGO_ID_DIGEST_SHA256,
-                    Hex.decodeHex("5db3455a22b65edfcfde3da3e8d724cd")},
+                    HexFormat.of().parseHex("5db3455a22b65edfcfde3da3e8d724cd")},
             
             new Object[] {
-                    Hex.decodeHex("a9723e56045f0847fdd9c1c78781c8b7"),
-                    Hex.decodeHex("e69b6005b78f7d42d0a8ed2a"),
+                    HexFormat.of().parseHex("a9723e56045f0847fdd9c1c78781c8b7"),
+                    HexFormat.of().parseHex("e69b6005b78f7d42d0a8ed2a"),
                     128,
                     SignatureConstants.ALGO_ID_DIGEST_SHA256,
-                    Hex.decodeHex("ac3878b8cf357976f7fd8266923e1882")},
+                    HexFormat.of().parseHex("ac3878b8cf357976f7fd8266923e1882")},
             
             new Object[] {
-                    Hex.decodeHex("a07a5e8df7ee1b2ce2a3d1348edfa8ab"),
-                    Hex.decodeHex("e22a8ee34296dd39b56b31fb"),
+                    HexFormat.of().parseHex("a07a5e8df7ee1b2ce2a3d1348edfa8ab"),
+                    HexFormat.of().parseHex("e22a8ee34296dd39b56b31fb"),
                     128,
                     SignatureConstants.ALGO_ID_DIGEST_SHA256,
-                    Hex.decodeHex("70927d218b6d119268381e9930a4f256")},
+                    HexFormat.of().parseHex("70927d218b6d119268381e9930a4f256")},
             
             new Object[] {
-                    Hex.decodeHex("3f892bd8b84dae64a782a35f6eaa8f00"),
-                    Hex.decodeHex("ec3f1cd873d28858a58cc39e"),
+                    HexFormat.of().parseHex("3f892bd8b84dae64a782a35f6eaa8f00"),
+                    HexFormat.of().parseHex("ec3f1cd873d28858a58cc39e"),
                     128,
                     SignatureConstants.ALGO_ID_DIGEST_SHA256,
-                    Hex.decodeHex("a7c0665298252531e0db37737a374651")},
+                    HexFormat.of().parseHex("a7c0665298252531e0db37737a374651")},
             
             new Object[] {
-                    Hex.decodeHex("3f892bd8b84dae64a782a35f6eaa8f00"),
-                    Hex.decodeHex("ec3f1cd873d28858a58cc39e"),
+                    HexFormat.of().parseHex("3f892bd8b84dae64a782a35f6eaa8f00"),
+                    HexFormat.of().parseHex("ec3f1cd873d28858a58cc39e"),
                     192,
                     SignatureConstants.ALGO_ID_DIGEST_SHA256,
-                    Hex.decodeHex("a7c0665298252531e0db37737a374651b368275f2048284d")},
+                    HexFormat.of().parseHex("a7c0665298252531e0db37737a374651b368275f2048284d")},
             
             new Object[] {
-                    Hex.decodeHex("3f892bd8b84dae64a782a35f6eaa8f00"),
-                    Hex.decodeHex("ec3f1cd873d28858a58cc39e"),
+                    HexFormat.of().parseHex("3f892bd8b84dae64a782a35f6eaa8f00"),
+                    HexFormat.of().parseHex("ec3f1cd873d28858a58cc39e"),
                     256,
                     SignatureConstants.ALGO_ID_DIGEST_SHA256,
-                    Hex.decodeHex("a7c0665298252531e0db37737a374651b368275f2048284d16a166c6d8a90a91")},
+                    HexFormat.of().parseHex("a7c0665298252531e0db37737a374651b368275f2048284d16a166c6d8a90a91")},
             
             // SHA-256 digest
             new Object[] {
-                    Hex.decodeHex("108cf63318555c787fa578731dd4f037"),
-                    Hex.decodeHex("53191b1dd3f94d83084d61d6"),
+                    HexFormat.of().parseHex("108cf63318555c787fa578731dd4f037"),
+                    HexFormat.of().parseHex("53191b1dd3f94d83084d61d6"),
                     128,
                     SignatureConstants.ALGO_ID_DIGEST_SHA512,
-                    Hex.decodeHex("0ad475c1826da3007637970c8b92b993")},
+                    HexFormat.of().parseHex("0ad475c1826da3007637970c8b92b993")},
             
             new Object[] {
-                    Hex.decodeHex("35fa6d42e65014f04bdd80ff1404ab27"),
-                    Hex.decodeHex("506d9cfe967748d1e6f84bd9"),
+                    HexFormat.of().parseHex("35fa6d42e65014f04bdd80ff1404ab27"),
+                    HexFormat.of().parseHex("506d9cfe967748d1e6f84bd9"),
                     128,
                     SignatureConstants.ALGO_ID_DIGEST_SHA512,
-                    Hex.decodeHex("16739821c3b13dee57e24c092211ddd6")},
+                    HexFormat.of().parseHex("16739821c3b13dee57e24c092211ddd6")},
             
             new Object[] {
-                    Hex.decodeHex("775e83546ce8b41a83656bd723d63c9e"),
-                    Hex.decodeHex("514f4d06bf8c1646aeae28fa"),
+                    HexFormat.of().parseHex("775e83546ce8b41a83656bd723d63c9e"),
+                    HexFormat.of().parseHex("514f4d06bf8c1646aeae28fa"),
                     128,
                     SignatureConstants.ALGO_ID_DIGEST_SHA512,
-                    Hex.decodeHex("0bce0e54a721367088495c0c4c0683f5")},
+                    HexFormat.of().parseHex("0bce0e54a721367088495c0c4c0683f5")},
             
             new Object[] {
-                    Hex.decodeHex("03f1dea7561b885a5601c6e75e405140"),
-                    Hex.decodeHex("1e366c4b697d20aa9a54d6f5"),
+                    HexFormat.of().parseHex("03f1dea7561b885a5601c6e75e405140"),
+                    HexFormat.of().parseHex("1e366c4b697d20aa9a54d6f5"),
                     128,
                     SignatureConstants.ALGO_ID_DIGEST_SHA512,
-                    Hex.decodeHex("56a2ac8f0eb55fdc4d8a891664edfbdb")},
+                    HexFormat.of().parseHex("56a2ac8f0eb55fdc4d8a891664edfbdb")},
             
             new Object[] {
-                    Hex.decodeHex("e65b1905878b95f68b5535bd3b2b1013"),
-                    Hex.decodeHex("830221b1730d9176f807d407"),
+                    HexFormat.of().parseHex("e65b1905878b95f68b5535bd3b2b1013"),
+                    HexFormat.of().parseHex("830221b1730d9176f807d407"),
                     128,
                     SignatureConstants.ALGO_ID_DIGEST_SHA512,
-                    Hex.decodeHex("b8c44bdf0b85a64b6a51c12a06710e37")},
+                    HexFormat.of().parseHex("b8c44bdf0b85a64b6a51c12a06710e37")},
             
             new Object[] {
-                    Hex.decodeHex("e65b1905878b95f68b5535bd3b2b1013"),
-                    Hex.decodeHex("830221b1730d9176f807d407"),
+                    HexFormat.of().parseHex("e65b1905878b95f68b5535bd3b2b1013"),
+                    HexFormat.of().parseHex("830221b1730d9176f807d407"),
                     192,
                     SignatureConstants.ALGO_ID_DIGEST_SHA512,
-                    Hex.decodeHex("b8c44bdf0b85a64b6a51c12a06710e373d829bb1fda5b4e1")},
+                    HexFormat.of().parseHex("b8c44bdf0b85a64b6a51c12a06710e373d829bb1fda5b4e1")},
             
             new Object[] {
-                    Hex.decodeHex("e65b1905878b95f68b5535bd3b2b1013"),
-                    Hex.decodeHex("830221b1730d9176f807d407"),
+                    HexFormat.of().parseHex("e65b1905878b95f68b5535bd3b2b1013"),
+                    HexFormat.of().parseHex("830221b1730d9176f807d407"),
                     256,
                     SignatureConstants.ALGO_ID_DIGEST_SHA512,
-                    Hex.decodeHex("b8c44bdf0b85a64b6a51c12a06710e373d829bb1fda5b4e1a20795c6199594f6")},
+                    HexFormat.of().parseHex("b8c44bdf0b85a64b6a51c12a06710e373d829bb1fda5b4e1a20795c6199594f6")},
             
             
         };

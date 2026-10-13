@@ -25,13 +25,12 @@ import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Set;
 
 import javax.security.auth.x500.X500Principal;
 
-import org.apache.commons.codec.DecoderException;
-import org.apache.commons.codec.binary.Hex;
 import org.opensaml.security.SecurityException;
 import org.opensaml.security.crypto.KeySupport;
 import org.opensaml.security.crypto.KeySupportTest;
@@ -355,14 +354,12 @@ public class X509SupportTest {
     
     /**
      * Test Subject Key Identifier (SKI) extraction from certificate.
-     * 
-     * @throws DecoderException ...
      */
     @Test
-    public void testGetSubjectKeyIdentifier() throws DecoderException {
+    public void testGetSubjectKeyIdentifier() {
         // This is the cert SKI according to OpenSSL 'openssl x509 -in entity.crt -noout -text'
         String hexSKI = "D2:57:F5:C1:8C:11:26:1B:C6:65:82:F6:5A:93:0E:CA:40:CD:75:E5";
-        byte[] controlSKI = Hex.decodeHex(hexSKI.replaceAll(":", "").toCharArray());
+        byte[] controlSKI = HexFormat.of().parseHex(hexSKI.replaceAll(":", ""));
         byte[] certSKI = X509Support.getSubjectKeyIdentifier(entityCert);
         Assert.assertEquals(certSKI, controlSKI);
     }

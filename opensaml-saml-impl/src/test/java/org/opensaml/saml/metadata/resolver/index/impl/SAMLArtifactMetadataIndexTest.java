@@ -18,9 +18,9 @@ import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.util.HexFormat;
 import java.util.Set;
 
-import org.apache.commons.codec.binary.Hex;
 import org.opensaml.core.testing.XMLObjectBaseTestCase;
 import org.opensaml.core.xml.util.XMLObjectSupport;
 import org.opensaml.saml.common.binding.artifact.SAMLSourceIDArtifact;
@@ -96,19 +96,19 @@ public class SAMLArtifactMetadataIndexTest extends XMLObjectBaseTestCase {
         secureRandom.nextBytes(secondarySourceID);
         extSourceIDKey1a = new ArtifactSourceIDMetadataIndexKey(secondarySourceID);
         extSourceID1a = buildXMLObject(SourceID.DEFAULT_ELEMENT_NAME);
-        extSourceID1a.setValue(new String(Hex.encodeHex(secondarySourceID, true)));
+        extSourceID1a.setValue(HexFormat.of().formatHex(secondarySourceID));
         
         secondarySourceID = new byte[20];
         secureRandom.nextBytes(secondarySourceID);
         extSourceIDKey1b = new ArtifactSourceIDMetadataIndexKey(secondarySourceID);
         extSourceID1b = buildXMLObject(SourceID.DEFAULT_ELEMENT_NAME);
-        extSourceID1b.setValue(new String(Hex.encodeHex(secondarySourceID, true)));
+        extSourceID1b.setValue(HexFormat.of().formatHex(secondarySourceID));
         
         secondarySourceID = new byte[20];
         secureRandom.nextBytes(secondarySourceID);
         extSourceIDKey2 = new ArtifactSourceIDMetadataIndexKey(secondarySourceID);
         extSourceID2 = buildXMLObject(SourceID.DEFAULT_ELEMENT_NAME);
-        extSourceID2.setValue(new String(Hex.encodeHex(secondarySourceID, true)));
+        extSourceID2.setValue(HexFormat.of().formatHex(secondarySourceID));
     }
     
     @Test
