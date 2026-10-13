@@ -15,8 +15,10 @@
 package org.opensaml.spring.credential;
 
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.util.Base64;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -26,7 +28,6 @@ import net.shibboleth.shared.logic.Constraint;
 import net.shibboleth.shared.primitive.LoggerFactory;
 import net.shibboleth.shared.primitive.StringSupport;
 
-import org.apache.commons.codec.binary.Base64;
 import org.bouncycastle.util.encoders.Hex;
 import org.opensaml.security.credential.BasicCredential;
 import org.opensaml.security.credential.UsageType;
@@ -79,7 +80,7 @@ public abstract class AbstractBasicCredentialFactoryBean extends AbstractCredent
             case hex:
                 return Hex.decode(data);
             case base64:
-                return Base64.decodeBase64(data);
+                return decodeBase64(data);
             default:
                 throw new IllegalArgumentException("Saw unsupported encoding: " + getSecretKeyEncoding());
             
@@ -100,10 +101,24 @@ public abstract class AbstractBasicCredentialFactoryBean extends AbstractCredent
             case hex:
                 return Hex.decode(data);
             case base64:
-                return Base64.decodeBase64(data);
+                return decodeBase64(new String(data, StandardCharsets.UTF_8));
             default:
                 throw new IllegalArgumentException("Saw unsupported encoding: " + getSecretKeyEncoding());
             
+        }
+    }
+
+    /**
+     * Base64 decode the SecretKey data.
+     *
+     * @param data the Base64-encoded Secret key data
+     * @return the decoded SecretKey byte array
+     */
+    @Nonnull private byte[] decodeBase64(@Nonnull final String data) {
+        try {
+            return Base64.getMimeDecoder().decode(data);
+        } catch (final IllegalArgumentException e) {
+            throw new BeanCreationException("Could not Base64 decode secret key", e);
         }
     }
 
