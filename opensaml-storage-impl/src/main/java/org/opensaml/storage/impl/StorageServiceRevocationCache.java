@@ -15,13 +15,16 @@
 package org.opensaml.storage.impl;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.HexFormat;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import org.apache.commons.codec.digest.DigestUtils;
 import org.opensaml.storage.RevocationCache;
 import org.opensaml.storage.StorageCapabilities;
 import org.opensaml.storage.StorageRecord;
@@ -151,7 +154,7 @@ public class StorageServiceRevocationCache extends AbstractIdentifiableInitializ
             log.error("context {} too long for StorageService (limit {})", context, caps.getContextSize());
             return false;
         } else if (s.length() > caps.getKeySize()) {
-            key = DigestUtils.sha1Hex(s);
+            key = sha1Hex(s);
         } else {
             key = s;
         }
@@ -183,7 +186,7 @@ public class StorageServiceRevocationCache extends AbstractIdentifiableInitializ
             log.error("context {} too long for StorageService (limit {})", context, caps.getContextSize());
             return false;
         } else if (s.length() > caps.getKeySize()) {
-            key = DigestUtils.sha1Hex(s);
+            key = sha1Hex(s);
         } else {
             key = s;
         }
@@ -206,7 +209,7 @@ public class StorageServiceRevocationCache extends AbstractIdentifiableInitializ
             log.error("context {} too long for StorageService (limit {})", context, caps.getContextSize());
             return true;
         } else if (s.length() > caps.getKeySize()) {
-            key = DigestUtils.sha1Hex(s);
+            key = sha1Hex(s);
         } else {
             key = s;
         }
@@ -238,7 +241,7 @@ public class StorageServiceRevocationCache extends AbstractIdentifiableInitializ
             log.error("context {} too long for StorageService (limit {})", context, caps.getContextSize());
             throw new IOException("Context exceeded storage service limit.");
         } else if (s.length() > caps.getKeySize()) {
-            key = DigestUtils.sha1Hex(s);
+            key = sha1Hex(s);
         } else {
             key = s;
         }
@@ -259,6 +262,23 @@ public class StorageServiceRevocationCache extends AbstractIdentifiableInitializ
             
             log.error("Exception reading from storage service, non-strict so treating as non-revoked", e);
             return null;
+        }
+    }
+
+    /**
+     * Compute the hex-encoded SHA-1 digest of the UTF-8 form of a string.
+     *
+     * @param s the string to digest
+     *
+     * @return the lowercase hex-encoded digest
+     */
+    @Nonnull private static String sha1Hex(@Nonnull final String s) {
+        try {
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-1").digest(
+                    s.getBytes(StandardCharsets.UTF_8)));
+        } catch (final NoSuchAlgorithmException e) {
+            // Can't actually happen, SHA-1 is always supported.
+            throw new UnsupportedOperationException(e);
         }
     }
     
