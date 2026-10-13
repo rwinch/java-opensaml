@@ -14,6 +14,7 @@
 
 package org.opensaml.saml.common.binding.security.impl;
 
+import java.util.Base64;
 import java.util.List;
 
 import javax.annotation.Nonnull;
@@ -44,8 +45,6 @@ import com.google.common.base.Strings;
 import net.shibboleth.shared.annotation.constraint.NotEmpty;
 import net.shibboleth.shared.annotation.constraint.NotLive;
 import net.shibboleth.shared.annotation.constraint.Unmodifiable;
-import net.shibboleth.shared.codec.Base64Support;
-import net.shibboleth.shared.codec.DecodingException;
 import net.shibboleth.shared.collection.CollectionSupport;
 import net.shibboleth.shared.primitive.LoggerFactory;
 import net.shibboleth.shared.resolver.CriteriaSet;
@@ -297,8 +296,8 @@ public abstract class BaseSAMLSimpleSignatureSecurityHandler extends AbstractHtt
         }
         assert signature != null;
         try {
-            return Base64Support.decode(signature);
-        } catch (final DecodingException e) {
+            return Base64.getMimeDecoder().decode(signature);
+        } catch (final IllegalArgumentException e) {
            throw new MessageHandlerException("Signature could not be base64 decoded",e);
         }
     }

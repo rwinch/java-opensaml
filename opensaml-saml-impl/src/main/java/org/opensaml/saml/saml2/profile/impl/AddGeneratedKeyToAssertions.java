@@ -14,6 +14,7 @@
 
 package org.opensaml.saml.saml2.profile.impl;
 
+import java.util.Base64;
 import java.util.function.Function;
 
 import javax.annotation.Nonnull;
@@ -36,8 +37,6 @@ import org.opensaml.saml.saml2.profile.SAML2ActionSupport;
 import org.slf4j.Logger;
 
 import net.shibboleth.shared.annotation.constraint.NonnullBeforeExec;
-import net.shibboleth.shared.codec.Base64Support;
-import net.shibboleth.shared.codec.EncodingException;
 import net.shibboleth.shared.logic.Constraint;
 import net.shibboleth.shared.primitive.LoggerFactory;
 
@@ -139,25 +138,19 @@ public class AddGeneratedKeyToAssertions extends AbstractConditionalProfileActio
                 XMLObjectProviderRegistrySupport.getBuilderFactory().<GeneratedKey>ensureBuilder(
                         GeneratedKey.DEFAULT_ELEMENT_NAME);
 
-        try {
-            final byte[] keyBytes = ecpContext.getSessionKey();
-            // Checked above.
-            assert keyBytes != null;
-            final String key = Base64Support.encode(keyBytes, false);
-            
-            for (final Assertion assertion : response.getAssertions()) {
-                assert assertion != null;
-                final Advice advice = SAML2ActionSupport.addAdviceToAssertion(this, assertion);
-                final GeneratedKey gk = keyBuilder.buildObject();
-                gk.setValue(key);
-                advice.getChildren().add(gk);
-            }        
-            log.debug("{} Added GeneratedKey to Advice", getLogPrefix());
-        } catch(final EncodingException e) {
-            //should never happen
-            log.error("{} Error, could not add GeneratedKey to Advice", getLogPrefix(),e);
-            ActionSupport.buildEvent(profileRequestContext, EventIds.MESSAGE_PROC_ERROR);
-        }
+        final byte[] keyBytes = ecpContext.getSessionKey();
+        // Checked above.
+        assert keyBytes != null;
+        final String key = Base64.getEncoder().encodeToString(keyBytes);
+        
+        for (final Assertion assertion : response.getAssertions()) {
+            assert assertion != null;
+            final Advice advice = SAML2ActionSupport.addAdviceToAssertion(this, assertion);
+            final GeneratedKey gk = keyBuilder.buildObject();
+            gk.setValue(key);
+            advice.getChildren().add(gk);
+        }        
+        log.debug("{} Added GeneratedKey to Advice", getLogPrefix());
     }
 
 }

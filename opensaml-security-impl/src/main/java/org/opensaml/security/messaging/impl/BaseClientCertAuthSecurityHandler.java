@@ -17,6 +17,7 @@ package org.opensaml.security.messaging.impl;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 
 import javax.annotation.Nonnull;
@@ -43,8 +44,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import net.shibboleth.shared.annotation.constraint.NonnullAfterInit;
 import net.shibboleth.shared.annotation.constraint.NotLive;
 import net.shibboleth.shared.annotation.constraint.Unmodifiable;
-import net.shibboleth.shared.codec.Base64Support;
-import net.shibboleth.shared.codec.EncodingException;
 import net.shibboleth.shared.component.ComponentInitializationException;
 import net.shibboleth.shared.primitive.LoggerFactory;
 import net.shibboleth.shared.primitive.NonnullSupplier;
@@ -207,9 +206,8 @@ public abstract class BaseClientCertAuthSecurityHandler extends BaseTrustEngineS
             try {
                 log.debug("{} Attempting to authenticate inbound connection that presented the certificate:",
                         getLogPrefix());
-                log.debug(Base64Support.encode(requestCredential.getEntityCertificate().getEncoded(),
-                        Base64Support.UNCHUNKED));
-            } catch (final CertificateEncodingException | EncodingException e) {
+                log.debug(Base64.getEncoder().encodeToString(requestCredential.getEntityCertificate().getEncoded()));
+            } catch (final CertificateEncodingException e) {
                 // do nothing other than complete debug log
                 log.debug("{} Could not encode certificate for debug output",getLogPrefix());
             }

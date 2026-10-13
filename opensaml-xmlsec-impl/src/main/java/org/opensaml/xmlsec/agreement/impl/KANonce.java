@@ -15,12 +15,12 @@
 package org.opensaml.xmlsec.agreement.impl;
 
 import java.security.SecureRandom;
+import java.util.Base64;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.opensaml.core.xml.XMLObject;
-import org.opensaml.core.xml.XMLRuntimeException;
 import org.opensaml.core.xml.util.XMLObjectSupport;
 import org.opensaml.xmlsec.agreement.CloneableKeyAgreementParameter;
 import org.opensaml.xmlsec.agreement.KeyAgreementException;
@@ -28,9 +28,6 @@ import org.opensaml.xmlsec.agreement.KeyAgreementParameter;
 import org.opensaml.xmlsec.agreement.XMLExpressableKeyAgreementParameter;
 
 import net.shibboleth.shared.annotation.constraint.NonnullAfterInit;
-import net.shibboleth.shared.codec.Base64Support;
-import net.shibboleth.shared.codec.DecodingException;
-import net.shibboleth.shared.codec.EncodingException;
 import net.shibboleth.shared.component.AbstractInitializableComponent;
 import net.shibboleth.shared.component.ComponentInitializationException;
 import net.shibboleth.shared.logic.Constraint;
@@ -126,8 +123,8 @@ public class KANonce extends AbstractInitializableComponent
     protected void doInitialize() throws ComponentInitializationException {
         if (value != null) {
             try {
-                Base64Support.decode(value);
-            } catch (final DecodingException e) {
+                Base64.getMimeDecoder().decode(value);
+            } catch (final IllegalArgumentException e) {
                 throw new ComponentInitializationException("Nonce value was not valid Base64", e);
             }
         }
@@ -147,14 +144,9 @@ public class KANonce extends AbstractInitializableComponent
      * @return the generated value
      */
     protected String generateValue() {
-        try {
-            final byte[] valueBytes = new byte[generatedLength];
-            secureRandom.nextBytes(valueBytes);
-            return Base64Support.encode(valueBytes, false);
-        } catch (final EncodingException e) {
-            // This should never really happen
-            throw new XMLRuntimeException("Error Base64-encoding generated nonce value salt", e);
-        }
+        final byte[] valueBytes = new byte[generatedLength];
+        secureRandom.nextBytes(valueBytes);
+        return Base64.getEncoder().encodeToString(valueBytes);
     }
 
     /** {@inheritDoc} */

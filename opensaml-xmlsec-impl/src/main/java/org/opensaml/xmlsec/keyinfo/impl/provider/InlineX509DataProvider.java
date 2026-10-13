@@ -21,6 +21,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509CRL;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.List;
 
@@ -30,8 +31,6 @@ import javax.security.auth.x500.X500Principal;
 
 import net.shibboleth.shared.annotation.constraint.NotLive;
 import net.shibboleth.shared.annotation.constraint.Unmodifiable;
-import net.shibboleth.shared.codec.Base64Support;
-import net.shibboleth.shared.codec.DecodingException;
 import net.shibboleth.shared.collection.LazySet;
 import net.shibboleth.shared.logic.Constraint;
 import net.shibboleth.shared.primitive.LoggerFactory;
@@ -393,8 +392,8 @@ public class InlineX509DataProvider extends AbstractKeyInfoProvider {
      */
     @Nullable private byte[] base64DecodeOrNull(@Nonnull final String base64Encoded) {
         try {
-            return Base64Support.decode(base64Encoded);
-        } catch (final DecodingException e) {
+            return Base64.getMimeDecoder().decode(base64Encoded);
+        } catch (final IllegalArgumentException e) {
             //swallow exception, null is reported upstream and method is private.
           return null;
         }

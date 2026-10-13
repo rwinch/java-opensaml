@@ -15,6 +15,7 @@
 package org.opensaml.saml.saml2.binding.encoding.impl;
 
 import java.io.UnsupportedEncodingException;
+import java.util.Base64;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -39,9 +40,6 @@ import org.slf4j.Logger;
 import com.google.common.base.Strings;
 
 import net.shibboleth.shared.annotation.constraint.NotEmpty;
-import net.shibboleth.shared.codec.Base64Support;
-import net.shibboleth.shared.codec.DecodingException;
-import net.shibboleth.shared.codec.EncodingException;
 import net.shibboleth.shared.primitive.LoggerFactory;
 import net.shibboleth.shared.xml.SerializeSupport;
 
@@ -120,7 +118,7 @@ public class HTTPPostSimpleSignEncoder extends HTTPPostEncoder {
                     throw new MessageEncodingException("No KeyInfo marshaller was configured");
                 }
                 final String kiXML = SerializeSupport.nodeToString(marshaller.marshall(keyInfo));
-                final String kiBase64 = Base64Support.encode(kiXML.getBytes(), Base64Support.UNCHUNKED);
+                final String kiBase64 = Base64.getEncoder().encodeToString(kiXML.getBytes());
                 return kiBase64;
             }
             return null;
@@ -130,9 +128,6 @@ public class HTTPPostSimpleSignEncoder extends HTTPPostEncoder {
         } catch (final MarshallingException e) {
             log.error("Error marshalling KeyInfo based on signing credential: {}", e.getMessage());
             throw new MessageEncodingException("Error marshalling KeyInfo based on signing credential", e);
-        } catch (final EncodingException e) {
-            log.error("Error base64 encoding KeyInfo from signing credential: {}", e.getMessage());
-            throw new MessageEncodingException("Error base64 encoding KeyInfo from signing credential", e);
         }
     }
 
@@ -169,11 +164,11 @@ public class HTTPPostSimpleSignEncoder extends HTTPPostEncoder {
       
         String msg = null;
         try {
-            msg = new String(Base64Support.decode(msgB64), "UTF-8");
+            msg = new String(Base64.getMimeDecoder().decode(msgB64), "UTF-8");
         } catch (final UnsupportedEncodingException e) {
             // Should never happen, all JVM's required to support UTF-8           
             throw new MessageEncodingException("Unable to decode message as string, UTF-8 encoding is not supported",e);
-        } catch (final DecodingException e) { 
+        } catch (final IllegalArgumentException e) { 
             // Should never happen, original message is controlled and built by the IdP.
             throw new MessageEncodingException("Error base64-decoding the "+
                                             (isRequest ? "SAMLRequest" : "SAMLResponse"),e);
@@ -237,7 +232,7 @@ public class HTTPPostSimpleSignEncoder extends HTTPPostEncoder {
         try {
             final byte[] rawSignature =
                     XMLSigningUtil.signWithURI(signingCredential, algorithmURI, formData.getBytes("UTF-8"));
-            b64Signature = Base64Support.encode(rawSignature, Base64Support.UNCHUNKED);
+            b64Signature = Base64.getEncoder().encodeToString(rawSignature);
             log.debug("Generated digital signature value (base64-encoded) {}", b64Signature);
         } catch (final SecurityException e) {
             log.error("Error during URL signing process: {}", e.getMessage());
@@ -245,9 +240,6 @@ public class HTTPPostSimpleSignEncoder extends HTTPPostEncoder {
         } catch (final UnsupportedEncodingException e) {
             log.error("UTF-8 encoding is not supported, this VM is not Java compliant");
             throw new MessageEncodingException("Unable to encode message, UTF-8 encoding is not supported");
-        } catch (final EncodingException e) {
-            log.error("Error base64 encoding signature of form control data: {}",e.getMessage());
-            throw new MessageEncodingException("Unable to base64 encode signature of form control data",e);
         }
 
         return b64Signature;

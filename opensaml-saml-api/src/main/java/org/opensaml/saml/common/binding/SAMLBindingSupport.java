@@ -20,6 +20,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.Base64;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -45,8 +46,6 @@ import com.google.common.base.Strings;
 
 import jakarta.servlet.http.HttpServletRequest;
 import net.shibboleth.shared.annotation.constraint.NotEmpty;
-import net.shibboleth.shared.codec.Base64Support;
-import net.shibboleth.shared.codec.DecodingException;
 import net.shibboleth.shared.collection.CollectionSupport;
 import net.shibboleth.shared.io.NoWrapAutoEndInflaterInputStream;
 import net.shibboleth.shared.logic.Constraint;
@@ -665,7 +664,7 @@ public final class SAMLBindingSupport {
         } else {
             LOG.trace("Calculated deflated data size will be exact");
             try {
-                final byte[] decodedBytes = Base64Support.decode(trimmed);
+                final byte[] decodedBytes = Base64.getMimeDecoder().decode(trimmed);
                 try (final NoWrapAutoEndInflaterInputStream is =
                         new NoWrapAutoEndInflaterInputStream(new ByteArrayInputStream(decodedBytes))) {
 
@@ -675,7 +674,7 @@ public final class SAMLBindingSupport {
                     throw new MessageDecodingException("Fatal error during inflation", e);
                 }
 
-            } catch (final DecodingException e) {
+            } catch (final IllegalArgumentException e) {
                 throw new MessageDecodingException("Fatal error during Base64-decoding", e);
             }
         }

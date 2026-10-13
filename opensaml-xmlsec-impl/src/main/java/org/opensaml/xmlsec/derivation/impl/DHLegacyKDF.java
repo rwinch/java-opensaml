@@ -17,6 +17,7 @@ package org.opensaml.xmlsec.derivation.impl;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.HexFormat;
 
 import javax.annotation.Nonnull;
@@ -32,8 +33,6 @@ import org.slf4j.Logger;
 import com.google.common.base.Charsets;
 import com.google.common.primitives.Bytes;
 
-import net.shibboleth.shared.codec.Base64Support;
-import net.shibboleth.shared.codec.DecodingException;
 import net.shibboleth.shared.logic.Constraint;
 import net.shibboleth.shared.primitive.LoggerFactory;
 import net.shibboleth.shared.primitive.StringSupport;
@@ -141,13 +140,13 @@ public class DHLegacyKDF {
         }
         
         try {
-            final byte[] nonceBytes = nonce != null ? Base64Support.decode(nonce) : new byte[] {};
+            final byte[] nonceBytes = nonce != null ? Base64.getMimeDecoder().decode(nonce) : new byte[] {};
             int counter = 0;
             while ((derived.length * 8) < keyLength) {
                 derived = Bytes.concat(derived, digest(++counter, jcaDigest, secret, encryptionAlgorithm, keyLength,
                         nonceBytes));
             }
-        } catch (final DecodingException e) { 
+        } catch (final IllegalArgumentException e) { 
             log.error("Fatal error Base64-decoding supplied nonce value: {}", nonce, e);
             throw new KeyDerivationException("Fatal error decoding nonce", e);
         }

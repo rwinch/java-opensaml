@@ -16,6 +16,7 @@ package org.opensaml.saml.saml2.binding.security.impl;
 
 import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 
 import javax.annotation.Nonnull;
@@ -40,8 +41,6 @@ import com.google.common.base.Strings;
 import net.shibboleth.shared.annotation.constraint.NonnullAfterInit;
 import net.shibboleth.shared.annotation.constraint.NotLive;
 import net.shibboleth.shared.annotation.constraint.Unmodifiable;
-import net.shibboleth.shared.codec.Base64Support;
-import net.shibboleth.shared.codec.DecodingException;
 import net.shibboleth.shared.collection.CollectionSupport;
 import net.shibboleth.shared.component.ComponentInitializationException;
 import net.shibboleth.shared.logic.Constraint;
@@ -141,8 +140,8 @@ public class SAML2HTTPPostSimpleSignSecurityHandler extends BaseSAMLSimpleSignat
 
         ByteArrayInputStream is = null;
         try {
-            is = new ByteArrayInputStream(Base64Support.decode(kiBase64));
-        } catch (final DecodingException e) {
+            is = new ByteArrayInputStream(Base64.getMimeDecoder().decode(kiBase64));
+        } catch (final IllegalArgumentException e) {
             log.warn("Error base64 decoding KeyInfo data: {}", e.getMessage());
             throw new MessageHandlerException("Error base64 decoding KeyInfo data", e);
         }

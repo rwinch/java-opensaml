@@ -39,6 +39,7 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.KeySpec;
 import java.security.spec.RSAPublicKeySpec;
 import java.security.spec.X509EncodedKeySpec;
+import java.util.Base64;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -91,7 +92,6 @@ import com.google.common.base.Strings;
 import net.shibboleth.shared.annotation.constraint.NotEmpty;
 import net.shibboleth.shared.annotation.constraint.NotLive;
 import net.shibboleth.shared.annotation.constraint.Unmodifiable;
-import net.shibboleth.shared.codec.Base64Support;
 import net.shibboleth.shared.codec.DecodingException;
 import net.shibboleth.shared.codec.EncodingException;
 import net.shibboleth.shared.logic.Constraint;
@@ -107,6 +107,9 @@ public final class KeyInfoSupport {
     
     /** Logger. */
     @Nonnull private static final Logger LOG = LoggerFactory.getLogger(KeyInfoSupport.class);
+
+    /** Encoder used to produce chunked Base64 output. */
+    @Nonnull private static final Base64.Encoder CHUNKED_ENCODER = Base64.getMimeEncoder(76, new byte[] { '\n' });
 
     /**
      * Factory for {@link java.security.cert.X509Certificate} and {@link java.security.cert.X509CRL} creation.
@@ -382,12 +385,8 @@ public final class KeyInfoSupport {
         final org.opensaml.xmlsec.signature.X509Certificate xmlCert =
                 xmlCertBuilder.buildObject(org.opensaml.xmlsec.signature.X509Certificate.DEFAULT_ELEMENT_NAME);
         
-        try {
-            xmlCert.setValue(Base64Support.encode(cert.getEncoded(), Base64Support.CHUNKED));  
-            return xmlCert;
-        } catch (final EncodingException e) {
-            throw new CertificateEncodingException("X.509 certificate could not be base64 encoded");
-        }
+        xmlCert.setValue(CHUNKED_ENCODER.encodeToString(cert.getEncoded()));  
+        return xmlCert;
         
     }
 
@@ -409,12 +408,8 @@ public final class KeyInfoSupport {
         final org.opensaml.xmlsec.signature.X509CRL xmlCRL =
                 xmlCRLBuilder.buildObject(org.opensaml.xmlsec.signature.X509CRL.DEFAULT_ELEMENT_NAME);
         
-        try {
-            xmlCRL.setValue(Base64Support.encode(crl.getEncoded(), Base64Support.CHUNKED));
-            return xmlCRL;
-        } catch (final EncodingException e) {
-            throw new CRLException("X.509CRL could not be base64 encoded");
-        } 
+        xmlCRL.setValue(CHUNKED_ENCODER.encodeToString(crl.getEncoded()));
+        return xmlCRL;
     }
 
     /**
@@ -484,13 +479,8 @@ public final class KeyInfoSupport {
         final X509SKI xmlSKI = xmlSKIBuilder.buildObject(X509SKI.DEFAULT_ELEMENT_NAME);
         
         
-        try {
-            xmlSKI.setValue(Base64Support.encode(skiPlainValue, Base64Support.CHUNKED));
-            return xmlSKI;
-        } catch (final EncodingException e) {
-            LOG.warn("X.509 subject key identifier could not be base64 encoded",e);
-            throw new SecurityException("X.509 subject key identifier could not be base64 encoded",e);
-        }        
+        xmlSKI.setValue(CHUNKED_ENCODER.encodeToString(skiPlainValue));
+        return xmlSKI;
     }
 
     /**
@@ -518,12 +508,8 @@ public final class KeyInfoSupport {
         final X509Digest xmlDigest = builder.buildObject(X509Digest.DEFAULT_ELEMENT_NAME);
         xmlDigest.setAlgorithm(algorithmURI);
         
-        try {
-            xmlDigest.setValue(Base64Support.encode(hash, Base64Support.CHUNKED));
-            return xmlDigest;
-        } catch (final EncodingException e) {
-            throw new CertificateEncodingException("X509Digest could not be base64 encoded");
-        }
+        xmlDigest.setValue(CHUNKED_ENCODER.encodeToString(hash));
+        return xmlDigest;
     }    
     
     /**
@@ -661,9 +647,8 @@ public final class KeyInfoSupport {
         namedCurve.setURI(uri);
         ecKeyValue.setNamedCurve(namedCurve);
         
-        publicKey.setValue(Base64Support.encode(
-                ECSupport.encodeECPointUncompressed(ecPubKey.getW(), ecPubKey.getParams().getCurve()),
-                Base64Support.UNCHUNKED));
+        publicKey.setValue(Base64.getEncoder().encodeToString(
+                ECSupport.encodeECPointUncompressed(ecPubKey.getW(), ecPubKey.getParams().getCurve())));
         ecKeyValue.setPublicKey(publicKey);
         
         return ecKeyValue;
@@ -766,11 +751,7 @@ public final class KeyInfoSupport {
         final KeyFactory keyFactory = KeyFactory.getInstance(pk.getAlgorithm());
         final X509EncodedKeySpec keySpec = keyFactory.getKeySpec(pk, X509EncodedKeySpec.class);
         
-        try {
-            keyValue.setValue(Base64Support.encode(keySpec.getEncoded(), Base64Support.CHUNKED));
-        } catch (final EncodingException e) {
-           throw new InvalidKeySpecException("X509 Key spec could not be base64 encoded",e);
-        }
+        keyValue.setValue(CHUNKED_ENCODER.encodeToString(keySpec.getEncoded()));
         
         keyInfo.getDEREncodedKeyValues().add(keyValue);
     }
@@ -879,15 +860,18 @@ public final class KeyInfoSupport {
             throw new KeyException("Could not obtain public key value");
         }
         
+        final byte[] encodedPoint;
         try {
-            final ECPoint ecPoint = ECSupport.decodeECPoint(Base64Support.decode(pubval), ecParams.getCurve());
-            
-            final ECPublicKeySpec keySpec = new ECPublicKeySpec(ecPoint, ecParams);
-            
-            return buildKey(keySpec, JCAConstants.KEY_ALGO_EC);
-        } catch (final DecodingException e) {
+            encodedPoint = Base64.getMimeDecoder().decode(pubval);
+        } catch (final IllegalArgumentException e) {
             throw new KeyException("Error Base64 decoding ECKeyValue PublicKey ECPoint", e);
         }
+        
+        final ECPoint ecPoint = ECSupport.decodeECPoint(encodedPoint, ecParams.getCurve());
+        
+        final ECPublicKeySpec keySpec = new ECPublicKeySpec(ecPoint, ecParams);
+        
+        return buildKey(keySpec, JCAConstants.KEY_ALGO_EC);
         
     }
     
@@ -1063,7 +1047,11 @@ public final class KeyInfoSupport {
      */
     @Nonnull public static final BigInteger decodeBigIntegerFromCryptoBinary(@Nonnull final String base64Value) 
             throws DecodingException {
-        return new BigInteger(1, Base64Support.decode(base64Value));
+        try {
+            return new BigInteger(1, Base64.getMimeDecoder().decode(base64Value));
+        } catch (final IllegalArgumentException e) {
+            throw new DecodingException("Unable to base64 decode data: " + e.getMessage(), e);
+        }
     }
 
     /**
@@ -1079,7 +1067,7 @@ public final class KeyInfoSupport {
         
         // This code is really complicated, for now just use the Apache xmlsec lib code directly.
         final byte[] bigIntBytes = XMLUtils.getBytes(bigInt, bigInt.bitLength());
-        return Base64Support.encode(bigIntBytes, Base64Support.UNCHUNKED);
+        return Base64.getEncoder().encodeToString(bigIntBytes);
     }
 
     /**
@@ -1136,8 +1124,8 @@ public final class KeyInfoSupport {
         }
         byte[] encodedKey = null;
         try {
-            encodedKey = Base64Support.decode(keyValueValue);
-        } catch (final DecodingException e) {
+            encodedKey = Base64.getMimeDecoder().decode(keyValueValue);
+        } catch (final IllegalArgumentException e) {
            throw new KeyException("DEREncodedKeyValue could not be base64 decoded",e);
         }
 

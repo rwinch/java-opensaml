@@ -15,6 +15,7 @@
 package org.opensaml.saml.saml2.binding.decoding.impl;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -31,8 +32,6 @@ import com.google.common.base.Strings;
 
 import jakarta.servlet.http.HttpServletRequest;
 import net.shibboleth.shared.annotation.constraint.NotEmpty;
-import net.shibboleth.shared.codec.Base64Support;
-import net.shibboleth.shared.codec.DecodingException;
 import net.shibboleth.shared.logic.Constraint;
 import net.shibboleth.shared.primitive.LoggerFactory;
 
@@ -102,18 +101,18 @@ public class HTTPPostSimpleSignDecoder extends HTTPPostDecoder {
             if (request.getParameter("SAMLRequest") != null) {
                 final String paramValue = request.getParameter("SAMLRequest");
                 assert paramValue != null;
-                samlMsg = new String(Base64Support.decode(paramValue), StandardCharsets.UTF_8);
+                samlMsg = new String(Base64.getMimeDecoder().decode(paramValue), StandardCharsets.UTF_8);
                 builder.append("SAMLRequest=" + samlMsg);
             } else if (request.getParameter("SAMLResponse") != null) {
                 final String paramValue = request.getParameter("SAMLResponse");
                 assert paramValue != null;
-                samlMsg = new String(Base64Support.decode(paramValue), StandardCharsets.UTF_8);
+                samlMsg = new String(Base64.getMimeDecoder().decode(paramValue), StandardCharsets.UTF_8);
                 builder.append("SAMLResponse=" + samlMsg);
             } else {
                 log.warn("Could not extract either a SAMLRequest or a SAMLResponse from the form control data");
                 return null;
             }
-        } catch (final DecodingException e) {
+        } catch (final IllegalArgumentException e) {
             log.error("Unable to Base64 decode either a SAMLRequest or a SAMLResponse from the form control data");
             throw new MessageDecodingException("Unable to Base64 decode either a SAMLRequest or a SAMLResponse "
                     + "from the form control data",e);

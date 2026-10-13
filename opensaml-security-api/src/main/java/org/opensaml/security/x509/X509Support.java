@@ -32,6 +32,7 @@ import java.security.cert.X509CRL;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -44,8 +45,6 @@ import javax.security.auth.x500.X500Principal;
 import net.shibboleth.shared.annotation.constraint.NotEmpty;
 import net.shibboleth.shared.annotation.constraint.NotLive;
 import net.shibboleth.shared.annotation.constraint.Unmodifiable;
-import net.shibboleth.shared.codec.Base64Support;
-import net.shibboleth.shared.codec.DecodingException;
 import net.shibboleth.shared.logic.Constraint;
 import net.shibboleth.shared.primitive.LoggerFactory;
 import net.shibboleth.shared.primitive.StringSupport;
@@ -400,8 +399,8 @@ public class X509Support {
     @Nonnull public static X509Certificate decodeCertificate(@Nonnull final String base64Cert)
             throws CertificateException {
         try {
-            return decodeCertificate(Base64Support.decode(base64Cert));
-        } catch (final DecodingException e) {
+            return decodeCertificate(Base64.getMimeDecoder().decode(base64Cert));
+        } catch (final IllegalArgumentException e) {
            throw new CertificateException(e);
         }
     }
@@ -490,9 +489,9 @@ public class X509Support {
             throws CertificateException, CRLException {
         try {
             final CertificateFactory cf = CertificateFactory.getInstance("X.509");
-            final ByteArrayInputStream input = new ByteArrayInputStream(Base64Support.decode(base64CRL));
+            final ByteArrayInputStream input = new ByteArrayInputStream(Base64.getMimeDecoder().decode(base64CRL));
             return (java.security.cert.X509CRL) cf.generateCRL(input);
-        } catch (final DecodingException e) {
+        } catch (final IllegalArgumentException e) {
             throw new CRLException("Unable to base64 decode CRL",e);
         }       
     }

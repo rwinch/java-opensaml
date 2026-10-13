@@ -20,14 +20,13 @@ import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.DSAPublicKey;
 import java.security.interfaces.ECPublicKey;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.crypto.SecretKey;
 
-import net.shibboleth.shared.codec.Base64Support;
-import net.shibboleth.shared.codec.DecodingException;
 import net.shibboleth.shared.logic.Constraint;
 import net.shibboleth.shared.primitive.LoggerFactory;
 
@@ -448,14 +447,14 @@ public class Encrypter {
     @Nullable protected byte[] decodeOAEPParams(@Nullable final String base64Params) throws EncryptionException {
         try {
             if (base64Params != null) {
-                final byte[] oaepParams = Base64Support.decode(base64Params);
+                final byte[] oaepParams = Base64.getMimeDecoder().decode(base64Params);
                 if (oaepParams.length == 0) {
                     return null;
                 }
                 return oaepParams;
             }
             return null;
-        } catch (final DecodingException e) {
+        } catch (final IllegalArgumentException e) {
             throw new EncryptionException(String.format("Error decoding OAEPParams data '%s'", base64Params), e);
         }
     }

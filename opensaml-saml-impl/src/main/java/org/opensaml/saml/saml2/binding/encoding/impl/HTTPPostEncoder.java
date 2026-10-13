@@ -17,6 +17,7 @@ package org.opensaml.saml.saml2.binding.encoding.impl;
 import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.io.Writer;
+import java.util.Base64;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -36,8 +37,6 @@ import org.w3c.dom.Element;
 
 import net.shibboleth.shared.annotation.constraint.NonnullAfterInit;
 import net.shibboleth.shared.annotation.constraint.NotEmpty;
-import net.shibboleth.shared.codec.Base64Support;
-import net.shibboleth.shared.codec.EncodingException;
 import net.shibboleth.shared.codec.HTMLEncoder;
 import net.shibboleth.shared.codec.StringDigester;
 import net.shibboleth.shared.component.ComponentInitializationException;
@@ -231,7 +230,7 @@ public class HTTPPostEncoder extends BaseSAML2MessageEncoder implements HTMLMess
         
         try {
             final String messageXML = SerializeSupport.nodeToString(domMessage);
-            final String encodedMessage = Base64Support.encode(messageXML.getBytes("UTF-8"), Base64Support.UNCHUNKED);
+            final String encodedMessage = Base64.getEncoder().encodeToString(messageXML.getBytes("UTF-8"));
             if (outboundMessage instanceof RequestAbstractType) {
                 velocityContext.put("SAMLRequest", encodedMessage);
             } else if (outboundMessage instanceof StatusResponseType) {
@@ -243,9 +242,6 @@ public class HTTPPostEncoder extends BaseSAML2MessageEncoder implements HTMLMess
         } catch (final UnsupportedEncodingException e) {
             log.error("UTF-8 encoding is not supported, this VM is not Java compliant");
             throw new MessageEncodingException("Unable to encode message, UTF-8 encoding is not supported");
-        } catch (final EncodingException e) {
-            log.error("Unable to base64 encode SAML message: {}",e.getMessage());
-            throw new MessageEncodingException("Unable to base64 encode SAML message",e);
         }
 
         final String relayState = SAMLBindingSupport.getRelayState(messageContext);

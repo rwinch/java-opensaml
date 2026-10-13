@@ -15,6 +15,7 @@
 package org.opensaml.saml.saml2.binding.decoding.impl;
 
 import java.time.Instant;
+import java.util.Base64;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -62,9 +63,7 @@ import org.slf4j.Logger;
 import jakarta.servlet.http.HttpServletRequest;
 import net.shibboleth.shared.annotation.constraint.NonnullAfterInit;
 import net.shibboleth.shared.annotation.constraint.NotEmpty;
-import net.shibboleth.shared.codec.Base64Support;
 import net.shibboleth.shared.codec.DecodingException;
-import net.shibboleth.shared.codec.EncodingException;
 import net.shibboleth.shared.component.ComponentInitializationException;
 import net.shibboleth.shared.logic.Constraint;
 import net.shibboleth.shared.primitive.LoggerFactory;
@@ -443,7 +442,7 @@ public class HTTPArtifactDecoder extends BaseSAMLHttpServletRequestDecoder imple
             }
             throw new MessageDecodingException("SOAP message payload was not an instance of ArtifactResponse: " 
                     + (response != null ? response.getClass().getName() : "(null)"));
-        } catch (final MessageException | SOAPException | SecurityException | EncodingException e) {
+        } catch (final MessageException | SOAPException | SecurityException e) {
             throw new MessageDecodingException("Error dereferencing artifact", e);
         }
     }
@@ -483,17 +482,16 @@ public class HTTPArtifactDecoder extends BaseSAMLHttpServletRequestDecoder imple
      * @param peerRoleDescriptor the peer RoleDescriptor
      * @param selfEntityID the entityID of this party, the issuer of the protocol request message
      * @return the SAML protocol message for artifact resolution
-     * @throws EncodingException if the artifact can not be base64 encoded.
      */
     @Nonnull private ArtifactResolve buildArtifactResolveRequestMessage(@Nonnull final SAML2Artifact artifact, 
             @Nonnull final String endpoint, @Nonnull final RoleDescriptor peerRoleDescriptor, 
-            @Nonnull final String selfEntityID) throws EncodingException  {
+            @Nonnull final String selfEntityID) {
         
         final ArtifactResolve request = 
                 (ArtifactResolve) XMLObjectSupport.buildXMLObject(ArtifactResolve.DEFAULT_ELEMENT_NAME);
         
         final Artifact requestArtifact = (Artifact) XMLObjectSupport.buildXMLObject(Artifact.DEFAULT_ELEMENT_NAME);
-        requestArtifact.setValue(Base64Support.encode(artifact.getArtifactBytes(), false));
+        requestArtifact.setValue(Base64.getEncoder().encodeToString(artifact.getArtifactBytes()));
         request.setArtifact(requestArtifact);
         
         request.setID(idStrategy.generateIdentifier(true));

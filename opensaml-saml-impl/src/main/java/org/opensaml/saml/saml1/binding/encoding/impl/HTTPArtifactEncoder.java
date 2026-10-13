@@ -16,6 +16,7 @@ package org.opensaml.saml.saml1.binding.encoding.impl;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.util.Base64;
 import java.util.List;
 
 import javax.annotation.Nonnull;
@@ -41,8 +42,6 @@ import org.slf4j.Logger;
 import jakarta.servlet.http.HttpServletResponse;
 import net.shibboleth.shared.annotation.constraint.NonnullAfterInit;
 import net.shibboleth.shared.annotation.constraint.NotEmpty;
-import net.shibboleth.shared.codec.Base64Support;
-import net.shibboleth.shared.codec.EncodingException;
 import net.shibboleth.shared.collection.Pair;
 import net.shibboleth.shared.component.ComponentInitializationException;
 import net.shibboleth.shared.logic.Constraint;
@@ -167,16 +166,12 @@ public class HTTPArtifactEncoder extends BaseSAML1MessageEncoder {
 
            
             try {
-                final String artifactString = Base64Support.encode(artifact.getArtifactBytes(), 
-                        Base64Support.UNCHUNKED);
+                final String artifactString = Base64.getEncoder().encodeToString(artifact.getArtifactBytes());
                 artifactMap.put(artifactString, requester, issuer, assertion);
                 queryParams.add(new Pair<>("SAMLart", artifactString));
             } catch (final IOException e) {
                 log.error("Unable to store assertion mapping for artifact: {}", e.getMessage());
                 throw new MessageEncodingException("Unable to store assertion mapping for artifact", e);
-            } catch (final EncodingException e) {
-                log.error("Unable to base64 encode artifact for message to relying party: {}", e.getMessage());
-                throw new MessageEncodingException("Unable to base64 encode artifact for message to relying party", e);
             }
             
         }

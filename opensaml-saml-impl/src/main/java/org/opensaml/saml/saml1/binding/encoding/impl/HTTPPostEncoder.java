@@ -17,6 +17,7 @@ package org.opensaml.saml.saml1.binding.encoding.impl;
 import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.io.Writer;
+import java.util.Base64;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -34,8 +35,6 @@ import org.slf4j.Logger;
 
 import net.shibboleth.shared.annotation.constraint.NonnullAfterInit;
 import net.shibboleth.shared.annotation.constraint.NotEmpty;
-import net.shibboleth.shared.codec.Base64Support;
-import net.shibboleth.shared.codec.EncodingException;
 import net.shibboleth.shared.codec.HTMLEncoder;
 import net.shibboleth.shared.codec.StringDigester;
 import net.shibboleth.shared.component.ComponentInitializationException;
@@ -190,7 +189,7 @@ public class HTTPPostEncoder extends BaseSAML1MessageEncoder implements HTMLMess
 
             log.debug("Marshalling and Base64 encoding SAML message");
             final String messageXML = SerializeSupport.nodeToString(marshallMessage(message));
-            final String encodedMessage = Base64Support.encode(messageXML.getBytes("UTF-8"), Base64Support.UNCHUNKED);
+            final String encodedMessage = Base64.getEncoder().encodeToString(messageXML.getBytes("UTF-8"));
             context.put("SAMLResponse", encodedMessage);
 
             final String relayState = SAMLBindingSupport.getRelayState(messageContext);
@@ -215,9 +214,6 @@ public class HTTPPostEncoder extends BaseSAML1MessageEncoder implements HTMLMess
         } catch (final UnsupportedEncodingException e) {
             log.error("UTF-8 encoding is not supported, this VM is not Java compliant");
             throw new MessageEncodingException("Unable to encode message, UTF-8 encoding is not supported");
-        } catch (final EncodingException e) {
-            log.error("Unable to base64 encode SAML message: {}", e.getMessage());
-            throw new MessageEncodingException("Unable to base64 encode SAML message", e);
         } catch (final Exception e) {
             log.error("Error invoking velocity template: {}", e.getMessage());
             throw new MessageEncodingException("Error creating output document", e);

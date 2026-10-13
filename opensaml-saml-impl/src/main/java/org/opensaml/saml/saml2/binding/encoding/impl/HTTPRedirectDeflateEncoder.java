@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -46,8 +47,6 @@ import com.google.common.collect.Lists;
 
 import jakarta.servlet.http.HttpServletResponse;
 import net.shibboleth.shared.annotation.constraint.NotEmpty;
-import net.shibboleth.shared.codec.Base64Support;
-import net.shibboleth.shared.codec.EncodingException;
 import net.shibboleth.shared.collection.CollectionSupport;
 import net.shibboleth.shared.collection.Pair;
 import net.shibboleth.shared.io.NoWrapAutoEndDeflaterOutputStream;
@@ -142,9 +141,9 @@ public class HTTPRedirectDeflateEncoder extends BaseSAML2MessageEncoder {
                 deflaterStream.write(messageStr.getBytes("UTF-8"));
                 deflaterStream.finish();
 
-                return Base64Support.encode(bytesOut.toByteArray(), Base64Support.UNCHUNKED);
+                return Base64.getEncoder().encodeToString(bytesOut.toByteArray());
             }            
-        } catch (final IOException | EncodingException e) {
+        } catch (final IOException e) {
             throw new MessageEncodingException("Unable to DEFLATE and Base64 encode SAML message", e);
         } 
     }
@@ -281,7 +280,7 @@ public class HTTPRedirectDeflateEncoder extends BaseSAML2MessageEncoder {
         try {
             final byte[] rawSignature =
                     XMLSigningUtil.signWithURI(signingCredential, algorithmURI, queryString.getBytes("UTF-8"));
-            final String b64Signature = Base64Support.encode(rawSignature, Base64Support.UNCHUNKED);
+            final String b64Signature = Base64.getEncoder().encodeToString(rawSignature);
             log.debug("Generated digital signature value (base64-encoded) {}", b64Signature);
             return b64Signature;
         } catch (final SecurityException e) {
@@ -290,9 +289,6 @@ public class HTTPRedirectDeflateEncoder extends BaseSAML2MessageEncoder {
         } catch (final UnsupportedEncodingException e) {
             // UTF-8 encoding is required to be supported by all JVMs
             throw new MessageEncodingException("Unable to access UTF-8 character encoding?", e);
-        } catch (final EncodingException e) {
-            log.error("Error during URL signing process: {}", e.getMessage());
-            throw new MessageEncodingException("Unable to base64 encode signature of URL query string", e);
         }
     }
 

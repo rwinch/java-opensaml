@@ -14,6 +14,7 @@
 
 package org.opensaml.saml.saml1.binding.artifact;
 
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -22,7 +23,6 @@ import javax.annotation.Nullable;
 
 import net.shibboleth.shared.annotation.constraint.NotLive;
 import net.shibboleth.shared.annotation.constraint.Unmodifiable;
-import net.shibboleth.shared.codec.Base64Support;
 import net.shibboleth.shared.codec.DecodingException;
 import net.shibboleth.shared.collection.CollectionSupport;
 
@@ -72,7 +72,13 @@ public class SAML1ArtifactBuilderFactory {
      * @throws DecodingException if the <code>base64Artifact</code> could not be base64-decoded.
      */
     @Nullable public SAML1Artifact buildArtifact(@Nonnull final String base64Artifact) throws DecodingException {
-        return buildArtifact(Base64Support.decode(base64Artifact));
+        final byte[] decoded;
+        try {
+            decoded = Base64.getMimeDecoder().decode(base64Artifact);
+        } catch (final IllegalArgumentException e) {
+            throw new DecodingException("Unable to base64 decode data: " + e.getMessage(), e);
+        }
+        return buildArtifact(decoded);
     }
 
     /**

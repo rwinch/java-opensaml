@@ -15,12 +15,12 @@
 package org.opensaml.saml.common.binding.artifact;
 
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.HexFormat;
 
 import javax.annotation.Nonnull;
 
 import net.shibboleth.shared.annotation.constraint.NotEmpty;
-import net.shibboleth.shared.codec.Base64Support;
 import net.shibboleth.shared.codec.EncodingException;
 import net.shibboleth.shared.logic.Constraint;
 import net.shibboleth.shared.primitive.LoggerFactory;
@@ -91,7 +91,7 @@ public abstract class AbstractSAMLArtifact implements SAMLArtifact {
      * @throws EncodingException if the artifact could not be base64 encoded.
      */
     @Nonnull @NotEmpty public String base64Encode() throws EncodingException {
-        return Base64Support.encode(getArtifactBytes(), Base64Support.UNCHUNKED);
+        return Base64.getEncoder().encodeToString(getArtifactBytes());
     }
 
     /**

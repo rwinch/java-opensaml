@@ -15,6 +15,7 @@
 package org.opensaml.saml.saml1.binding.decoding.impl;
 
 import java.io.ByteArrayInputStream;
+import java.util.Base64;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -33,8 +34,6 @@ import org.slf4j.Logger;
 
 import jakarta.servlet.http.HttpServletRequest;
 import net.shibboleth.shared.annotation.constraint.NotEmpty;
-import net.shibboleth.shared.codec.Base64Support;
-import net.shibboleth.shared.codec.DecodingException;
 import net.shibboleth.shared.primitive.LoggerFactory;
 
 /**
@@ -85,24 +84,25 @@ public class HTTPPostDecoder extends BaseSAMLHttpServletRequestDecoder implement
         log.debug("Decoded SAML relay state (TARGET parameter) of: {}", relayState);
         SAMLBindingSupport.setRelayState(messageContext, relayState);
         
-        try {            
-            final String base64Message = request.getParameter("SAMLResponse");
-            if (base64Message == null) {
-                throw new MessageDecodingException("Missing SAMLResponse parameter");
-            }
-            final byte[] decodedBytes = Base64Support.decode(base64Message);
-            
-            final SAMLObject inboundMessage = (SAMLObject) unmarshallMessage(new ByteArrayInputStream(decodedBytes));
-            SAMLBindingSupport.checkSAML1MessageType(false, inboundMessage);
-            messageContext.setMessage(inboundMessage);
-            log.debug("Decoded SAML message");
-    
-            populateBindingContext(messageContext);
-            
-            setMessageContext(messageContext);            
-        }catch (final DecodingException e) {
+        final String base64Message = request.getParameter("SAMLResponse");
+        if (base64Message == null) {
+            throw new MessageDecodingException("Missing SAMLResponse parameter");
+        }
+        final byte[] decodedBytes;
+        try {
+            decodedBytes = Base64.getMimeDecoder().decode(base64Message);
+        } catch (final IllegalArgumentException e) {
             throw new MessageDecodingException("Unable to Base64 decode SAML message",e);
-        } 
+        }
+        
+        final SAMLObject inboundMessage = (SAMLObject) unmarshallMessage(new ByteArrayInputStream(decodedBytes));
+        SAMLBindingSupport.checkSAML1MessageType(false, inboundMessage);
+        messageContext.setMessage(inboundMessage);
+        log.debug("Decoded SAML message");
+
+        populateBindingContext(messageContext);
+        
+        setMessageContext(messageContext);            
     }
     
     /**

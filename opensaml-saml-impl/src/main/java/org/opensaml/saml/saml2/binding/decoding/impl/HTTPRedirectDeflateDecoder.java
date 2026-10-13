@@ -18,6 +18,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -41,7 +42,6 @@ import com.google.common.base.Strings;
 
 import jakarta.servlet.http.HttpServletRequest;
 import net.shibboleth.shared.annotation.constraint.NotEmpty;
-import net.shibboleth.shared.codec.Base64Support;
 import net.shibboleth.shared.collection.CollectionSupport;
 import net.shibboleth.shared.collection.Pair;
 import net.shibboleth.shared.io.NoWrapAutoEndInflaterInputStream;
@@ -304,7 +304,7 @@ public class HTTPRedirectDeflateDecoder extends BaseSAMLHttpServletRequestDecode
         log.debug("Base64 decoding and inflating SAML message");
 
         try {
-            final byte[] decodedBytes = Base64Support.decode(message);
+            final byte[] decodedBytes = Base64.getMimeDecoder().decode(message);
             return new NoWrapAutoEndInflaterInputStream(new ByteArrayInputStream(decodedBytes));
         } catch (final Exception e) {
             log.error("Unable to Base64 decode and inflate SAML message: {}", e.getMessage());

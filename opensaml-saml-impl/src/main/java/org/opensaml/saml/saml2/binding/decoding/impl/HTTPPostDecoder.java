@@ -17,6 +17,7 @@ package org.opensaml.saml.saml2.binding.decoding.impl;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Base64;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -36,8 +37,6 @@ import com.google.common.base.Strings;
 
 import jakarta.servlet.http.HttpServletRequest;
 import net.shibboleth.shared.annotation.constraint.NotEmpty;
-import net.shibboleth.shared.codec.Base64Support;
-import net.shibboleth.shared.codec.DecodingException;
 import net.shibboleth.shared.collection.Pair;
 import net.shibboleth.shared.primitive.LoggerFactory;
 
@@ -142,11 +141,11 @@ public class HTTPPostDecoder extends BaseSAMLHttpServletRequestDecoder implement
 
         try {
             log.trace("Base64 decoding SAML message:\n{}", encodedMessage);
-            final byte[] decodedBytes = Base64Support.decode(encodedMessage);            
+            final byte[] decodedBytes = Base64.getMimeDecoder().decode(encodedMessage);            
             log.trace("Decoded SAML message:\n{}", new String(decodedBytes));
             return new Pair<>(new ByteArrayInputStream(decodedBytes), samlMessageParamName);
             
-        } catch (final DecodingException e) {        
+        } catch (final IllegalArgumentException e) {        
             log.error("Unable to Base64 decode SAML message");
             throw new MessageDecodingException("Unable to Base64 decode SAML message",e);
         }      

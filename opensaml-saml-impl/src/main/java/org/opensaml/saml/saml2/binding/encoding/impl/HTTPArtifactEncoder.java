@@ -17,6 +17,7 @@ package org.opensaml.saml.saml2.binding.encoding.impl;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.net.MalformedURLException;
+import java.util.Base64;
 import java.util.List;
 
 import javax.annotation.Nonnull;
@@ -44,8 +45,6 @@ import org.slf4j.Logger;
 import jakarta.servlet.http.HttpServletResponse;
 import net.shibboleth.shared.annotation.constraint.NonnullAfterInit;
 import net.shibboleth.shared.annotation.constraint.NotEmpty;
-import net.shibboleth.shared.codec.Base64Support;
-import net.shibboleth.shared.codec.EncodingException;
 import net.shibboleth.shared.codec.HTMLEncoder;
 import net.shibboleth.shared.codec.StringDigester;
 import net.shibboleth.shared.collection.Pair;
@@ -247,13 +246,8 @@ public class HTTPArtifactEncoder extends BaseSAML2MessageEncoder implements HTML
         final String encodedEndpointURL = HTMLEncoder.encodeForHTMLAttribute(endpointURL);
         log.debug("Setting action parameter to: '{}', encoded as '{}'", endpointURL, encodedEndpointURL);
         context.put("action", encodedEndpointURL);
-        try {
-            context.put("SAMLArt", 
-                    Base64Support.encode(buildArtifact(messageContext).getArtifactBytes(), Base64Support.UNCHUNKED));
-        } catch (final EncodingException e) {
-            log.warn("Unable to base64 encode SAML 2 artifact when creating POST form: {}",e.getMessage());
-            throw new MessageEncodingException("Unable to base64 encode SAML 2 artifact when creating POST form",e);
-        }
+        context.put("SAMLArt", 
+                Base64.getEncoder().encodeToString(buildArtifact(messageContext).getArtifactBytes()));
         context.put("binding", getBindingURI());
         
         if (cspDigester != null) {
@@ -316,13 +310,8 @@ public class HTTPArtifactEncoder extends BaseSAML2MessageEncoder implements HTML
         queryParams.clear();
 
         final SAML2Artifact artifact = buildArtifact(messageContext);
-        try {
-            queryParams.add(new Pair<>("SAMLart", 
-                    Base64Support.encode(artifact.getArtifactBytes(), Base64Support.UNCHUNKED)));
-        } catch (final EncodingException e) {
-            log.error("Unable to base64 encode artifact for message to relying party: {}",e.getMessage());
-            throw new MessageEncodingException("Unable to base64 encode artifact for message to relying party",e);
-        }
+        queryParams.add(new Pair<>("SAMLart", 
+                Base64.getEncoder().encodeToString(artifact.getArtifactBytes())));
 
         final String relayState = SAMLBindingSupport.getRelayState(messageContext);
         if (SAMLBindingSupport.checkRelayState(relayState)) {
@@ -385,14 +374,11 @@ public class HTTPArtifactEncoder extends BaseSAML2MessageEncoder implements HTML
             throw new MessageEncodingException("Unable to build artifact for message to relying party");
         }        
         try {
-            final String encodedArtifact = Base64Support.encode(artifact.getArtifactBytes(), Base64Support.UNCHUNKED);
+            final String encodedArtifact = Base64.getEncoder().encodeToString(artifact.getArtifactBytes());
             artifactMap.put(encodedArtifact, requester, issuer, samlObject);
         } catch (final IOException e) {
             log.error("Unable to store message mapping for artifact: {}", e.getMessage());
             throw new MessageEncodingException("Unable to store message mapping for artifact", e);
-        } catch (final EncodingException e) {
-            log.error("Unable to base64 encode artifact: {}", e.getMessage());
-            throw new MessageEncodingException("Unable to base64 encode artifact", e);
         }
 
         return artifact;

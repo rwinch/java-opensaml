@@ -17,6 +17,7 @@ package org.opensaml.xmlsec.derivation.impl;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.spec.InvalidKeySpecException;
+import java.util.Base64;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -52,9 +53,6 @@ import com.google.common.base.Charsets;
 
 import net.shibboleth.shared.annotation.constraint.NonnullAfterInit;
 import net.shibboleth.shared.annotation.constraint.NotEmpty;
-import net.shibboleth.shared.codec.Base64Support;
-import net.shibboleth.shared.codec.DecodingException;
-import net.shibboleth.shared.codec.EncodingException;
 import net.shibboleth.shared.component.AbstractInitializableComponent;
 import net.shibboleth.shared.component.ComponentInitializationException;
 import net.shibboleth.shared.logic.Constraint;
@@ -237,8 +235,8 @@ public class PBKDF2 extends AbstractInitializableComponent
     protected void doInitialize() throws ComponentInitializationException {
         if (salt != null) {
             try {
-                Base64Support.decode(salt);
-            } catch (final DecodingException e) {
+                Base64.getMimeDecoder().decode(salt);
+            } catch (final IllegalArgumentException e) {
                 throw new ComponentInitializationException("Salt value was not valid Base64", e);
             }
         }
@@ -312,17 +310,13 @@ public class PBKDF2 extends AbstractInitializableComponent
             // Usually the originator/encrypting case. We generate and set it internally here so can emit in XML later.
             saltBytes = new byte[generatedSaltLength];
             secureRandom.nextBytes(saltBytes);
-            try {
-                salt = Base64Support.encode(saltBytes, false);
-            } catch (final EncodingException e) {
-                throw new KeyDerivationException("Error Base64-encoding generated salt", e);
-            }
+            salt = Base64.getEncoder().encodeToString(saltBytes);
         } else {
             // Usually the recipient/decrypting case, where value is parsed from the Salt XML Element.
             try {
                 assert salt != null;
-                saltBytes = Base64Support.decode(salt);
-            } catch (final DecodingException e) {
+                saltBytes = Base64.getMimeDecoder().decode(salt);
+            } catch (final IllegalArgumentException e) {
                 // We already tested this during init so this shouldn't happen
                 throw new KeyDerivationException("Error Base64-decoding supplied salt", e);
             }

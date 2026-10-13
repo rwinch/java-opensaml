@@ -48,6 +48,7 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.KeySpec;
 import java.security.spec.RSAPublicKeySpec;
 import java.security.spec.X509EncodedKeySpec;
+import java.util.Base64;
 import java.util.Map;
 
 import javax.annotation.Nonnull;
@@ -58,8 +59,6 @@ import javax.crypto.interfaces.DHPrivateKey;
 import javax.crypto.interfaces.DHPublicKey;
 import javax.crypto.spec.SecretKeySpec;
 
-import net.shibboleth.shared.codec.Base64Support;
-import net.shibboleth.shared.codec.DecodingException;
 import net.shibboleth.shared.collection.LazyMap;
 import net.shibboleth.shared.logic.Constraint;
 import net.shibboleth.shared.primitive.LoggerFactory;
@@ -372,8 +371,8 @@ public final class KeySupport {
      */
     @Nonnull private static byte[] base64DecodeOrThrow(@Nonnull final String base64EncodedKey) throws KeyException {
         try {
-            return Base64Support.decode(base64EncodedKey);
-        } catch (final DecodingException e) {
+            return Base64.getMimeDecoder().decode(base64EncodedKey);
+        } catch (final IllegalArgumentException e) {
             throw new KeyException("Unable to base64 decode key",e);
         }
     }
